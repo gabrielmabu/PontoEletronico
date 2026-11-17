@@ -438,14 +438,17 @@ function rotear() {
 
 // ---------- Login ----------
 var listaCarregada = false;
+function preencherLogin(l) {
+  var ult = ler('ultimoLogin'), atual = el('lLogin').value || ult;
+  el('lLogin').innerHTML = '<option value="">Selecione seu nome</option>' + l.map(function (p) {
+    return '<option value="' + esc(p.login) + '"' + (p.login === atual ? ' selected' : '') + '>' + esc(p.nome) + '</option>';
+  }).join('');
+}
 function carregarListaLogin() {
   if (listaCarregada) return;
+  try { var c = JSON.parse(ler('listaLogin') || 'null'); if (c) preencherLogin(c); } catch (x) {}   // aparece na hora; atualiza em seguida
   api('apiListaLogin').then(function (l) {
-    listaCarregada = true;
-    var ult = ler('ultimoLogin');
-    el('lLogin').innerHTML = '<option value="">Selecione seu nome</option>' + l.map(function (p) {
-      return '<option value="' + esc(p.login) + '"' + (p.login === ult ? ' selected' : '') + '>' + esc(p.nome) + '</option>';
-    }).join('');
+    listaCarregada = true; guardar('listaLogin', JSON.stringify(l)); preencherLogin(l);
   }).catch(function (e) { msg('lMsg', e.message); });
 }
 function entrar() {
