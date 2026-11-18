@@ -1141,7 +1141,7 @@ function carregarAdmin() {
     carregando(); S.admin = d; listarColabs(); preencherSelects();
     var l = d.lojas[0] || {};
     el('oId').value = l.id || ''; el('oNome').value = l.nome || ''; el('oEnd').value = l.endereco || '';
-    el('oLat').value = l.lat || ''; el('oLng').value = l.lng || ''; el('oRaio').value = l.raio || 150;
+    el('oLat').value = vBR(l.lat); el('oLng').value = vBR(l.lng); el('oRaio').value = l.raio || 150;
     if (!el('eMes').value) el('eMes').value = mesAtual();
     if (!el('fMes').value) el('fMes').value = mesAtual();
     if (!el('jData').value) el('jData').value = new Date().toISOString().slice(0, 10);
@@ -1172,20 +1172,27 @@ function editarColab(id) {
   var c = id ? S.admin.colaboradores.filter(function (x) { return x.id === id; })[0] : {};
   el('aFormTit').textContent = id ? 'Editar ' + c.nome : 'Novo colaborador';
   el('cId').value = c.id || ''; el('cNome').value = c.nome || ''; el('cLogin').value = c.login || '';
-  el('cCargo').value = c.cargo || ''; el('cSal').value = c.salario || ''; el('cPas').value = c.passagem || '';
-  el('cAbo').value = c.abono || ''; el('cDes').value = c.desconto === undefined ? 13.66 : c.desconto;
+  el('cCargo').value = c.cargo || ''; el('cSal').value = vBR(c.salario); el('cPas').value = vBR(c.passagem);
+  el('cAbo').value = c.abono || ''; el('cDes').value = vBR(c.desconto === undefined ? 13.66 : c.desconto);
   el('cPerfil').value = c.perfil || 'COLABORADOR'; el('cAtivo').value = c.ativo === false ? '0' : '1';
   el('aForm').classList.remove('hide'); el('aForm').scrollIntoView();
 }
 
 function num(v) { return String(v).replace(/\./g, '').replace(',', '.'); }
+/** Padrão brasileiro: vírgula nos decimais, ponto nos milhares. vBR mostra; nBR lê o que foi digitado e devolve com ponto (para o servidor). */
+function vBR(v) { return v === undefined || v === null || v === '' ? '' : String(v).replace('.', ','); }
+function nBR(s) {
+  s = String(s === undefined || s === null ? '' : s).replace(/\s|R\$/g, '');
+  if (s.indexOf(',') >= 0) return s.replace(/\./g, '').replace(',', '.');
+  return /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, '') : s;
+}
 function salvarColab() {
   carregando('Salvando...');
   api('apiAdminSalvarColaborador', S.token, {
     id: el('cId').value, nome: el('cNome').value, login: el('cLogin').value, cargo: el('cCargo').value,
-    salario: el('cSal').value.indexOf(',') >= 0 ? num(el('cSal').value) : el('cSal').value,
-    passagem: String(el('cPas').value).replace(',', '.'), abono: el('cAbo').value,
-    desconto: String(el('cDes').value).replace(',', '.'), perfil: el('cPerfil').value, ativo: el('cAtivo').value === '1'
+    salario: nBR(el('cSal').value),
+    passagem: nBR(el('cPas').value), abono: el('cAbo').value,
+    desconto: nBR(el('cDes').value), perfil: el('cPerfil').value, ativo: el('cAtivo').value === '1'
   }).then(function (d) {
     carregando(); S.admin = d; listarColabs(); preencherSelects(); el('aForm').classList.add('hide');
     msg('aMsg', 'Colaborador salvo. Senha de primeiro acesso: a senha padrão.', true);
@@ -1252,10 +1259,10 @@ function carregarRegras() {
 }
 function pintarRegras(r) {
   el('rCfg').innerHTML = r.config.map(function (c, i) {
-    return '<label>' + esc(c.rotulo) + '</label><input id="rc' + i + '" value="' + esc(c.valor) + '"' + (c.tipo === 'n' ? ' inputmode="decimal"' : '') + '><p class="mut" style="margin:2px 0 8px">' + esc(c.ajuda) + '</p>';
+    return '<label>' + esc(c.rotulo) + '</label><input id="rc' + i + '" value="' + esc(c.tipo === 'n' ? vBR(c.valor) : c.valor) + '"' + (c.tipo === 'n' ? ' inputmode="decimal"' : '') + '><p class="mut" style="margin:2px 0 8px">' + esc(c.ajuda) + '</p>';
   }).join('');
   S.regras = r;
-  el('rjSS').value = r.jornada.seg_sex; el('rjSab').value = r.jornada.sabado; el('rjDom').value = r.jornada.domingo;
+  el('rjSS').value = vBR(r.jornada.seg_sex); el('rjSab').value = vBR(r.jornada.sabado); el('rjDom').value = vBR(r.jornada.domingo);
   var dsem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   el('rFer').innerHTML = '<tr><th>Data</th><th>Nome</th><th></th></tr>' + (r.feriados.length ? r.feriados.map(function (f) {
     var p = f.data.split('-');
@@ -1266,8 +1273,8 @@ function pintarRegras(r) {
 function salvarRegras() {
   carregando('Salvando...');
   api('apiAdminSalvarRegras', S.token, {
-    config: S.regras.config.map(function (c, i) { return { chave: c.chave, valor: el('rc' + i).value }; }),
-    jornada: { seg_sex: el('rjSS').value.replace(',', '.'), sabado: el('rjSab').value.replace(',', '.'), domingo: el('rjDom').value.replace(',', '.') }
+    config: S.regras.config.map(function (c, i) { return { chave: c.chave, valor: c.tipo === 'n' ? nBR(el('rc' + i).value) : el('rc' + i).value }; }),
+    jornada: { seg_sex: nBR(el('rjSS').value), sabado: nBR(el('rjSab').value), domingo: nBR(el('rjDom').value) }
   }).then(function (r) { carregando(); pintarRegras(r); msg('aMsg', 'Regras salvas. O fechamento já usa os novos valores.', true); window.scrollTo(0, 0); })
     .catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); });
 }
@@ -1363,7 +1370,7 @@ function fechamento() {
 function usarMinhaPosicao() {
   carregando('Obtendo localização...');
   pegarGps().then(function (p) {
-    carregando(); el('oLat').value = p.lat.toFixed(6); el('oLng').value = p.lng.toFixed(6);
+    carregando(); el('oLat').value = vBR(p.lat.toFixed(6)); el('oLng').value = vBR(p.lng.toFixed(6));
     msg('aMsg', 'Posição capturada (precisão ' + Math.round(p.precisao) + ' m). Clique em Salvar loja.', true);
   }).catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
@@ -1371,7 +1378,7 @@ function usarMinhaPosicao() {
 function salvarLoja() {
   carregando('Salvando...');
   api('apiAdminSalvarLoja', S.token, { id: el('oId').value, nome: el('oNome').value, endereco: el('oEnd').value,
-    lat: String(el('oLat').value).replace(',', '.'), lng: String(el('oLng').value).replace(',', '.'), raio: el('oRaio').value })
+    lat: nBR(el('oLat').value), lng: nBR(el('oLng').value), raio: el('oRaio').value })
     .then(function (d) { carregando(); S.admin = d; msg('aMsg', 'Loja salva.', true); })
     .catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
