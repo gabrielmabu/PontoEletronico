@@ -115,6 +115,13 @@
   .st-aus { background:var(--err-bg); color:var(--err); }
   .st-abo { background:#EAF0FB; color:#2F5AA8; }
   .hr a { text-decoration:none; } .hr .ma { font-size:10px; color:var(--mut); }
+  .explica { background:var(--vinho-claro); border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.5; margin:8px 0 4px; }
+  .explica b { color:var(--vinho); }
+  .legenda { margin-top:14px; font-size:13.5px; } .legenda summary { cursor:pointer; font-weight:600; color:var(--vinho); }
+  .legenda table { margin-top:8px; } .legenda td { vertical-align:top; white-space:normal; }
+  .sug { display:inline-block; border:1px solid var(--vinho); color:var(--vinho); border-radius:999px; padding:1px 9px; font-size:11.5px; font-weight:600; margin:1px 3px 1px 0; cursor:pointer; background:#fff; }
+  .pend { border-top:1px solid var(--bd); padding:8px 0; font-size:13.5px; } .pend b { color:var(--vinho); }
+  .linha3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .tag-al { display:inline-block; background:#FFF4E0; color:#9A6200; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:600; margin:1px 2px 1px 0; }
   .fech .mais { width:26px; height:26px; border-radius:50%; border:1px solid var(--vinho); background:#fff; color:var(--vinho); font:600 16px var(--sans); line-height:22px; cursor:pointer; padding:0; }
   .fech .mais.aberto { background:var(--vinho); color:#fff; }
@@ -253,6 +260,7 @@
     <button data-t="ajuste">Ajustes</button>
     <button data-t="recusadas">Recusadas</button>
     <button data-t="loja">Loja</button>
+    <button data-t="regras">Regras</button>
   </div>
   <div id="aMsg" class="msg"></div>
 
@@ -312,20 +320,30 @@
     <p class="mut">A batida original nunca é apagada: ela fica marcada como substituída e tudo vai para o Log.</p>
     <label>Colaborador</label><select id="jColab"></select>
     <div class="linha"><div><label>Data</label><input type="date" id="jData"></div><div><label>Hora</label><input type="time" id="jHora"></div></div>
-    <label>Tipo</label>
-    <select id="jTipo" onchange="el('jHorasBox').classList.toggle('hide', this.value!=='ADICIONAR_BANCO')">
-      <option value="ENTRADA">Entrada</option><option value="SAIDA_INTERVALO">Saída para o almoço</option>
-      <option value="VOLTA_INTERVALO">Retorno do almoço</option><option value="SAIDA">Saída para casa</option>
-      <option value="ABONAR_FALTA">Abonar falta</option><option value="ABONAR_METADE">Abonar metade</option>
-      <option value="ADICIONAR_BANCO">Adicionar banco de horas</option><option value="RETIRAR_BANCO">Retirar banco de horas (folga)</option>
-      <option value="OBSERVACAO">Só observação (Abonar Horas / Abonar Almoço)</option>
-    </select>
+    <label>O que você quer fazer?</label>
+    <select id="jTipo" onchange="explicarAjuste()"></select>
+    <div id="jExplica" class="explica"></div>
     <div id="jHorasBox" class="hide"><label>Horas (ex.: 2,5 ou -1)</label><input id="jHoras" inputmode="decimal"></div>
-    <label>Observação</label>
+    <label>Observação (aparece no espelho)</label>
     <input id="jObs" list="obsList" placeholder="ex.: ATESTADO, FOLGA, Abonar Horas">
     <datalist id="obsList"><option>Abonar Horas</option><option>Abonar Almoço</option><option>ATESTADO</option><option>DECLARAÇÃO</option><option>FOLGA</option><option>FOLGA ANIVERSÁRIO</option></datalist>
     <label>Justificativa (obrigatória)</label><textarea id="jJust" rows="2"></textarea>
     <button class="btn" onclick="salvarAjuste()">Registrar ajuste</button>
+    <details class="legenda"><summary>Guia: o que cada ajuste faz no pagamento</summary><div id="jGuia"></div></details>
+  </div>
+
+  <div class="card at hide" id="at-regras">
+    <h2>Regras do ponto</h2>
+    <p class="mut">Valem para todos. Salário, passagem e desconto de cada pessoa ficam em <b>Colaboradores</b>; endereço e raio, em <b>Loja</b>. Mudanças de valores recalculam o fechamento na hora.</p>
+    <div id="rCfg"></div>
+    <h3>Jornada padrão (horas por dia)</h3>
+    <div class="linha3"><div><label>Segunda a sexta</label><input id="rjSS" inputmode="decimal"></div><div><label>Sábado</label><input id="rjSab" inputmode="decimal"></div><div><label>Domingo</label><input id="rjDom" inputmode="decimal"></div></div>
+    <button class="btn" onclick="salvarRegras()">Salvar regras</button>
+    <h3>Feriados e dias sem expediente</h3>
+    <p class="mut">Feriado não conta como dia útil no cálculo do valor do dia e não gera "sem registro".</p>
+    <div class="linha"><input type="date" id="fnData"><input id="fnNome" placeholder="Nome (ex.: Natal)"></div>
+    <button class="btn sec" onclick="salvarFeriado()">Adicionar feriado</button>
+    <div class="scroll"><table id="rFer"></table></div>
   </div>
 
   <div class="card at hide" id="at-recusadas">
@@ -343,6 +361,7 @@
       </div>
     </div>
     <div id="fRes"></div>
+    <div id="fPend"></div>
     <div class="kpis" id="fKpis"></div>
     <p class="mut">Clique no <b>+</b> para ver os dias do colaborador. Dias com <span class="tag-al">alerta</span> são oportunidades de ajuste.</p>
     <div class="scroll"><table id="fTab" class="fech"></table></div>
@@ -388,6 +407,7 @@ function guardar(k, v) { try { v === null ? localStorage.removeItem(k) : localSt
 function ler(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function carregando(txt) { if (txt) { el('loadTxt').textContent = txt; el('load').classList.remove('hide'); } else el('load').classList.add('hide'); }
 function msg(id, txt, ok) { var m = el(id); m.textContent = txt || ''; m.className = 'msg' + (txt ? (ok ? ' ok' : ' err') : ''); }
+function normalizar(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
 /** Chama o servidor (Apps Script) como Promise, via fetch. */
@@ -822,12 +842,14 @@ document.querySelectorAll('#aTabs button').forEach(function (b) {
     document.querySelectorAll('.at').forEach(function (s) { s.classList.toggle('hide', s.id !== 'at-' + b.dataset.t); });
     msg('aMsg');
     if (b.dataset.t === 'recusadas') carregarRecusadas();
+    if (b.dataset.t === 'regras') carregarRegras();
     if (b.dataset.t === 'tratamento') carregarSolicitacoes();
     if (b.dataset.t === 'aovivo') carregarAoVivo();
     if (b.dataset.t === 'fechamento') carregarFechamento();
   };
 });
 
+montarAjustes();
 function abaAdmin(t) { document.querySelector('#aTabs button[data-t="' + t + '"]').click(); }
 function hojeIso() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function reais(v) { return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -865,9 +887,74 @@ function carregarAoVivo(silencioso) {
   }, 60000);
 }
 
-function irAjuste(idColab, iso) {
+// Tipos de ajuste: o que fazem de verdade no cálculo (espelham as regras do sistema antigo).
+var TIPOS_AJUSTE = [
+  { v: 'ENTRADA', t: 'Lançar/corrigir ENTRADA', hora: true, quando: 'A pessoa esqueceu de bater a entrada ou bateu errado.',
+    efeito: 'Grava o horário informado como entrada do dia (a batida anterior fica marcada como substituída, nunca apagada). Horas do dia = saída − entrada − almoço; o saldo é horas − jornada. O dia é pago, com passagem.' },
+  { v: 'SAIDA_INTERVALO', t: 'Lançar/corrigir SAÍDA PARA O ALMOÇO', hora: true, quando: 'Esqueceu de bater a ida ao almoço.',
+    efeito: 'Grava a saída do almoço. O tempo entre saída e retorno é descontado das horas trabalhadas.' },
+  { v: 'VOLTA_INTERVALO', t: 'Lançar/corrigir RETORNO DO ALMOÇO', hora: true, quando: 'Esqueceu de bater a volta (aparece "Falta retorno do almoço").',
+    efeito: 'Grava o retorno do almoço. Sem ele o dia fica com pendência e o almoço não é descontado direito.' },
+  { v: 'SAIDA', t: 'Lançar/corrigir SAÍDA PARA CASA', hora: true, quando: 'Esqueceu de bater a saída (aparece "Falta saída").',
+    efeito: 'Grava a saída do dia. É ela que fecha as horas do dia e paga o dia; sem saída o dia não conta como pago.' },
+  { v: 'ABONAR_FALTA', t: 'Abonar FALTA (dia inteiro)', quando: 'Falta justificada: atestado, declaração. Dia "sem registro".',
+    efeito: 'Conta a jornada inteira como trabalhada (8h; sábado 4h). Não mexe no banco de horas. O dia é pago, sem passagem.' },
+  { v: 'ABONAR_METADE', t: 'Abonar METADE do dia', quando: 'Meio período justificado (ex.: consulta pela manhã).',
+    efeito: 'Conta metade da jornada (4h; sábado 2h). A outra metade sai do banco de horas (−4h). O dia é pago, com passagem. Se a pessoa também bateu ponto, lance só o que falta.' },
+  { v: 'RETIRAR_BANCO', t: 'FOLGA usando o banco de horas', quando: 'A pessoa folgou e vai compensar com horas que acumulou.',
+    efeito: 'Tira a jornada do banco (−8h; sábado −4h). O dia é pago, sem passagem. Confira se há saldo positivo.' },
+  { v: 'ADICIONAR_BANCO', t: 'Somar/tirar HORAS do banco', horas: true, quando: 'Hora extra autorizada fora das batidas, ou acerto manual de saldo.',
+    efeito: 'Soma as horas que você informar ao banco (use negativo para tirar). Não paga o dia e não muda o salário.' },
+  { v: 'OBS_HORAS', t: 'Abonar HORAS (perdoar atraso/saída antecipada)', quando: 'Atraso ou saída antecipada justificados, mas a pessoa trabalhou o dia.',
+    efeito: 'O saldo do dia vira zero: não desconta nem soma no banco. O dia é pago normal. Só funciona em dia que tenha a SAÍDA batida.' },
+  { v: 'OBS_ALMOCO', t: 'Abonar ALMOÇO (almoço não batido)', quando: 'Trabalhou o dia mas não bateu ida/volta do almoço.',
+    efeito: 'Desconta 1h de almoço do saldo do dia (saldo = horas − jornada − 1h), como no sistema antigo. Só funciona em dia com SAÍDA batida e sem batidas de almoço.' },
+  { v: 'OBSERVACAO', t: 'Só ANOTAÇÃO (ATESTADO, FOLGA...)', quando: 'Registrar um aviso que aparece no espelho.',
+    efeito: 'Não altera horas, banco nem pagamento. Serve só de lembrete no espelho do dia.' }
+];
+function tipoAjuste(v) { return TIPOS_AJUSTE.filter(function (t) { return t.v === v; })[0]; }
+
+function montarAjustes() {
+  el('jTipo').innerHTML = TIPOS_AJUSTE.map(function (t) { return '<option value="' + t.v + '">' + esc(t.t) + '</option>'; }).join('');
+  el('jGuia').innerHTML = '<table><tr><th>Ajuste</th><th>Quando usar</th><th>O que faz</th></tr>' + TIPOS_AJUSTE.map(function (t) {
+    return '<tr><td><b>' + esc(t.t) + '</b></td><td>' + esc(t.quando) + '</td><td>' + esc(t.efeito) + '</td></tr>';
+  }).join('') + '</table><p class="mut">Regras gerais: o dia é calculado pela primeira batida de cada tipo; jornada seg–sex 8h e sábado 4h; todo saldo vai para o banco de horas (sem tolerância e sem hora extra de 50%/100%). A batida original nunca é apagada.</p>';
+  explicarAjuste();
+}
+function explicarAjuste() {
+  var t = tipoAjuste(el('jTipo').value); if (!t) return;
+  el('jExplica').innerHTML = '<b>Quando usar:</b> ' + esc(t.quando) + '<br><b>O que acontece:</b> ' + esc(t.efeito);
+  el('jHorasBox').classList.toggle('hide', !t.horas);
+}
+
+// O que sugerir para cada alerta do fechamento.
+function sugestoes(alerta) {
+  var a = String(alerta);
+  if (a.indexOf('Sem registro') === 0) return [['ABONAR_FALTA', 'Abonar falta'], ['RETIRAR_BANCO', 'Folga do banco'], ['ENTRADA', 'Lançar batidas']];
+  if (a.indexOf('Falta entrada') === 0) return [['ENTRADA', 'Lançar entrada']];
+  if (a.indexOf('Falta saída') === 0) return [['SAIDA', 'Lançar saída']];
+  if (a.indexOf('Falta retorno') === 0) return [['VOLTA_INTERVALO', 'Lançar retorno']];
+  if (a.indexOf('Almoço curto') === 0) return [['VOLTA_INTERVALO', 'Corrigir retorno'], ['SAIDA_INTERVALO', 'Corrigir ida']];
+  if (a.indexOf('Almoço longo') === 0) return [['VOLTA_INTERVALO', 'Corrigir retorno'], ['OBS_HORAS', 'Abonar horas']];
+  if (a.indexOf('Saldo negativo') === 0) return [['OBS_HORAS', 'Abonar horas'], ['SAIDA', 'Corrigir saída']];
+  if (a.indexOf('Hora a mais') === 0) return [['SAIDA', 'Corrigir saída']];
+  return [];
+}
+function chipsSug(alerta, idColab, iso) {
+  return sugestoes(alerta).map(function (s) {
+    return '<span class="sug" onclick="irAjuste(\'' + idColab + '\',\'' + iso + '\',\'' + s[0] + '\')">' + esc(s[1]) + '</span>';
+  }).join('');
+}
+
+function irAjuste(idColab, iso, tipo) {
   abaAdmin('ajuste');
-  el('jColab').value = idColab; el('jData').value = iso; el('jJust').focus();
+  el('jColab').value = idColab; el('jData').value = iso;
+  if (tipo) el('jTipo').value = tipo;
+  explicarAjuste();
+  var t = tipoAjuste(el('jTipo').value);
+  el('jHora').value = '';
+  (t && t.hora ? el('jHora') : el('jJust')).focus();
+  window.scrollTo(0, 0);
 }
 
 // ---------- Fechamento na tela ----------
@@ -891,9 +978,26 @@ function carregarFechamento() {
           (q === 1 ? '<tr class="det hide" id="d' + i + '"><td colspan="10"></td></tr>' : '');
       }).join('');
     }).join('');
+    renderPendencias(r);
     el('fTab').innerHTML = '<tr><th></th><th>Colaborador</th><th>Período</th><th>Dias pagos</th><th>Horas</th><th>Saldo</th><th>Banco acum.</th><th>Salário</th><th>Passagem</th><th>Total</th></tr>' +
       linhas + '<tr class="tot"><td></td><td colspan="6">Total geral</td><td>' + reais(r.total.sal) + '</td><td>' + reais(r.total.pas) + '</td><td>' + reais(r.total.geral) + '</td></tr>';
   }).catch(function (e) { el('fTab').innerHTML = ''; msg('aMsg', e.message); });
+}
+
+function renderPendencias(r) {
+  var itens = [];
+  r.lista.forEach(function (c) {
+    c.dias.forEach(function (d) {
+      d.alertas.forEach(function (a) { if (/^(Sem registro|Falta)/.test(a)) itens.push({ c: c, d: d, a: a }); });
+    });
+  });
+  var box = el('fPend');
+  if (!itens.length) { box.innerHTML = '<div class="explica"><b>Tudo lançado.</b> Nenhum dia sem registro ou com batida faltando neste mês.</div>'; return; }
+  box.innerHTML = '<div class="explica"><b>' + itens.length + ' pendência' + (itens.length > 1 ? 's' : '') + ' para resolver antes de pagar</b> (dias sem registro ou com batida faltando). ' +
+    'Toque na sugestão para abrir o ajuste já preenchido; o "+" de cada colaborador mostra os demais alertas (almoço, saldo).</div>' +
+    itens.slice(0, 60).map(function (x) {
+      return '<div class="pend"><b>' + esc(x.c.nome) + '</b> · ' + x.d.data + ' ' + x.d.sem + ' — <span class="tag-al">' + esc(x.a) + '</span> ' + chipsSug(x.a, x.c.id, x.d.iso) + '</div>';
+    }).join('') + (itens.length > 60 ? '<p class="mut">Mais ' + (itens.length - 60) + ' nos detalhes de cada colaborador.</p>' : '');
 }
 
 function abrirDias(i) {
@@ -907,7 +1011,7 @@ function abrirDias(i) {
       var al = d.alertas.length;
       return '<tr class="' + (d.cinza ? 'c' : '') + (al ? ' al' : '') + '"><td>' + d.data + ' ' + d.sem + '</td><td>' + d.entrada + '</td><td>' + d.saidaInt +
         '</td><td>' + d.voltaInt + '</td><td>' + d.saida + '</td><td>' + d.horas + '</td><td class="' + sinal(d.saldo) + '">' + d.saldo + '</td><td>' +
-        (d.salario ? reais(d.salario) : '') + '</td><td style="white-space:normal">' + d.alertas.map(function (a) { return '<span class="tag-al">' + esc(a) + '</span>'; }).join('') +
+        (d.salario ? reais(d.salario) : '') + '</td><td style="white-space:normal">' + d.alertas.map(function (a) { return '<div><span class="tag-al">' + esc(a) + '</span> ' + chipsSug(a, c.id, d.iso) + '</div>'; }).join('') +
         (d.nota && d.nota !== 'SEM REGISTRO' ? ' <span class="mut">' + esc(d.nota) + '</span>' : '') + '</td><td>' +
         (d.cinza ? '' : '<span class="lk" onclick="irAjuste(\'' + c.id + '\',\'' + d.iso + '\')">ajustar</span>') + '</td></tr>';
     }).join('') + '</table></div>';
@@ -1050,12 +1154,59 @@ function verEspelho() {
 }
 
 function salvarAjuste() {
+  var v = el('jTipo').value, t = tipoAjuste(v), tipo = v, obs = el('jObs').value;
+  if (t && t.hora && !el('jHora').value) { msg('aMsg', 'Informe a hora da batida.'); window.scrollTo(0, 0); return; }
+  if (t && t.horas && !String(el('jHoras').value).trim()) { msg('aMsg', 'Informe as horas (ex.: 2,5 ou -1).'); window.scrollTo(0, 0); return; }
+  if (v === 'OBS_HORAS' || v === 'OBS_ALMOCO') {   // o cálculo reconhece pelo início da observação
+    tipo = 'OBSERVACAO';
+    var pre = v === 'OBS_HORAS' ? 'Abonar Horas' : 'Abonar Almoço';
+    if (normalizar(obs).indexOf(normalizar(pre)) !== 0) obs = pre + (obs ? ' - ' + obs : '');
+  }
   carregando('Registrando...');
   api('apiAdminAjuste', S.token, {
-    idColaborador: el('jColab').value, data: el('jData').value, hora: el('jHora').value, tipo: el('jTipo').value,
-    horas: el('jHoras').value, observacao: el('jObs').value, justificativa: el('jJust').value
+    idColaborador: el('jColab').value, data: el('jData').value, hora: el('jHora').value, tipo: tipo,
+    horas: el('jHoras').value, observacao: obs, justificativa: el('jJust').value
   }).then(function (m) { carregando(); msg('aMsg', m, true); el('jJust').value = ''; el('jObs').value = ''; el('jHoras').value = ''; window.scrollTo(0, 0); })
     .catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); });
+}
+
+// ---------- Regras ----------
+function carregarRegras() {
+  el('rCfg').innerHTML = '<p class="mut">Carregando...</p>';
+  api('apiAdminRegras', S.token).then(pintarRegras).catch(function (e) { msg('aMsg', e.message); });
+}
+function pintarRegras(r) {
+  el('rCfg').innerHTML = r.config.map(function (c, i) {
+    return '<label>' + esc(c.rotulo) + '</label><input id="rc' + i + '" value="' + esc(c.valor) + '"' + (c.tipo === 'n' ? ' inputmode="decimal"' : '') + '><p class="mut" style="margin:2px 0 8px">' + esc(c.ajuda) + '</p>';
+  }).join('');
+  S.regras = r;
+  el('rjSS').value = r.jornada.seg_sex; el('rjSab').value = r.jornada.sabado; el('rjDom').value = r.jornada.domingo;
+  var dsem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  el('rFer').innerHTML = '<tr><th>Data</th><th>Nome</th><th></th></tr>' + (r.feriados.length ? r.feriados.map(function (f) {
+    var p = f.data.split('-');
+    return '<tr><td>' + p[2] + '/' + p[1] + '/' + p[0] + ' ' + dsem[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + '</td><td>' + esc(f.descricao) +
+      '</td><td><span class="lk" onclick="excluirFeriado(\'' + f.data + '\')">excluir</span></td></tr>';
+  }).join('') : '<tr><td class="mut" colspan="3">Nenhum feriado cadastrado.</td></tr>');
+}
+function salvarRegras() {
+  carregando('Salvando...');
+  api('apiAdminSalvarRegras', S.token, {
+    config: S.regras.config.map(function (c, i) { return { chave: c.chave, valor: el('rc' + i).value }; }),
+    jornada: { seg_sex: el('rjSS').value.replace(',', '.'), sabado: el('rjSab').value.replace(',', '.'), domingo: el('rjDom').value.replace(',', '.') }
+  }).then(function (r) { carregando(); pintarRegras(r); msg('aMsg', 'Regras salvas. O fechamento já usa os novos valores.', true); window.scrollTo(0, 0); })
+    .catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); });
+}
+function salvarFeriado() {
+  carregando('Salvando...');
+  api('apiAdminSalvarFeriado', S.token, el('fnData').value, el('fnNome').value).then(function (r) {
+    carregando(); el('fnNome').value = ''; pintarRegras(r); msg('aMsg', 'Feriado salvo.', true);
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); });
+}
+function excluirFeriado(data) {
+  if (!confirm('Excluir este feriado? Os cálculos desse dia voltam a tratá-lo como dia comum.')) return;
+  carregando('Excluindo...');
+  api('apiAdminExcluirFeriado', S.token, data).then(function (r) { carregando(); pintarRegras(r); msg('aMsg', 'Feriado excluído.', true); })
+    .catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
 
 function carregarRecusadas() {
