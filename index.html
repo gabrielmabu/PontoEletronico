@@ -849,7 +849,6 @@ document.querySelectorAll('#aTabs button').forEach(function (b) {
   };
 });
 
-montarAjustes();
 function abaAdmin(t) { document.querySelector('#aTabs button[data-t="' + t + '"]').click(); }
 function hojeIso() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function reais(v) { return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -913,6 +912,7 @@ var TIPOS_AJUSTE = [
     efeito: 'Não altera horas, banco nem pagamento. Serve só de lembrete no espelho do dia.' }
 ];
 function tipoAjuste(v) { return TIPOS_AJUSTE.filter(function (t) { return t.v === v; })[0]; }
+setTimeout(function () { montarAjustes(); }, 0);   // depois de todo o script carregar
 
 function montarAjustes() {
   el('jTipo').innerHTML = TIPOS_AJUSTE.map(function (t) { return '<option value="' + t.v + '">' + esc(t.t) + '</option>'; }).join('');
