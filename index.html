@@ -345,6 +345,13 @@
     <h3>Jornada padrão (horas por dia)</h3>
     <div class="linha3"><div><label>Segunda a sexta</label><input id="rjSS" inputmode="decimal"></div><div><label>Sábado</label><input id="rjSab" inputmode="decimal"></div><div><label>Domingo</label><input id="rjDom" inputmode="decimal"></div></div>
     <button class="btn" onclick="salvarRegras()">Salvar regras</button>
+    <h3>Senhas</h3>
+    <div id="rSen"></div>
+    <button class="btn sec" onclick="salvarRegras()">Salvar senha padrão</button>
+    <label style="margin-top:14px">Senha de gestão (a conta administradora que está logada agora)</label>
+    <p class="mut" style="margin:2px 0 8px">Troca a senha de quem está usando o admin. Mínimo de 6 caracteres e diferente da senha padrão.</p>
+    <div class="linha"><div><label>Nova senha de gestão</label><input id="gNova" type="password" autocomplete="new-password"></div><div><label>Repetir</label><input id="gConf" type="password" autocomplete="new-password"></div></div>
+    <button class="btn sec" onclick="salvarSenhaGestao()">Trocar senha de gestão</button>
     <h3>Feriados e dias sem expediente</h3>
     <p class="mut">Feriado não conta como dia útil no cálculo do valor do dia e não gera "sem registro".</p>
     <div class="linha"><input type="date" id="fnData"><input id="fnNome" placeholder="Nome (ex.: Natal)"></div>
@@ -1258,9 +1265,11 @@ function carregarRegras() {
   api('apiAdminRegras', S.token).then(pintarRegras).catch(function (e) { msg('aMsg', e.message); });
 }
 function pintarRegras(r) {
-  el('rCfg').innerHTML = r.config.map(function (c, i) {
+  var bloco = function (c, i) {
     return '<label>' + esc(c.rotulo) + '</label><input id="rc' + i + '" value="' + esc(c.tipo === 'n' ? vBR(c.valor) : c.valor) + '"' + (c.tipo === 'n' ? ' inputmode="decimal"' : '') + '><p class="mut" style="margin:2px 0 8px">' + esc(c.ajuda) + '</p>';
-  }).join('');
+  };
+  el('rCfg').innerHTML = r.config.map(function (c, i) { return c.chave === 'senha_padrao' ? '' : bloco(c, i); }).join('');
+  el('rSen').innerHTML = r.config.map(function (c, i) { return c.chave === 'senha_padrao' ? bloco(c, i) : ''; }).join('');
   S.regras = r;
   el('rjSS').value = vBR(r.jornada.seg_sex); el('rjSab').value = vBR(r.jornada.sabado); el('rjDom').value = vBR(r.jornada.domingo);
   var dsem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -1269,6 +1278,12 @@ function pintarRegras(r) {
     return '<tr><td>' + p[2] + '/' + p[1] + '/' + p[0] + ' ' + dsem[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + '</td><td>' + esc(f.descricao) +
       '</td><td><span class="lk" onclick="excluirFeriado(\'' + f.data + '\')">excluir</span></td></tr>';
   }).join('') : '<tr><td class="mut" colspan="3">Nenhum feriado cadastrado.</td></tr>');
+}
+function salvarSenhaGestao() {
+  carregando('Salvando...');
+  api('apiAdminSenhaGestao', S.token, el('gNova').value, el('gConf').value).then(function (m) {
+    carregando(); el('gNova').value = ''; el('gConf').value = ''; msg('aMsg', m, true); window.scrollTo(0, 0);
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
 function salvarRegras() {
   carregando('Salvando...');
