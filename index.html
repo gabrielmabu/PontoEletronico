@@ -228,6 +228,12 @@
   table.esc td.xav { box-shadow:inset 0 0 0 2px #F0B429; }
   table.esc tr.ruim td:first-child { color:var(--err); font-weight:600; }
   table.esc tr.ruim td { background-color:#FFF8F7; } table.esc tr.ruim td.fo { background:var(--vinho-claro); }
+  .esc-pessoas { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:6px 14px; }
+  .esc-pessoas div { display:flex; align-items:center; gap:8px; } .esc-pessoas label { margin:0; flex:1; text-transform:none; letter-spacing:0; font-size:14px; font-weight:500; color:var(--txt); display:flex; gap:6px; align-items:center; }
+  .esc-pessoas select, #escDias select { width:auto; padding:5px 30px 5px 8px; font-size:13px; }
+  #escFuncMin input { width:56px; padding:5px 8px; font-size:14px; }
+  table.esc .ftag { display:inline-block; font-size:10.5px; font-weight:600; color:var(--mut); background:var(--bg); border:1px solid var(--bd); border-radius:6px; padding:0 5px; margin-left:4px; }
+  table.esc .fcob { display:block; font-size:10.5px; font-weight:500; }
   #escDias input { width:78px; padding:6px 8px; font-size:14px; } #escDias input[type=checkbox] { width:18px; }
   .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
   @media print { header, #aTabs, #escParams, .filtro, .instalar { display:none !important; } .card { box-shadow:none; border:0; } }
@@ -510,9 +516,10 @@
       <div class="filtro"><button class="btn sec peq" onclick="baixarEscalaCsv()">⤓ Planilha (CSV)</button><button class="btn sec peq" onclick="window.print()">⎙ Imprimir</button></div></div>
     <div class="explica">A <b>Emenda Constitucional 141/2026</b> acaba com a escala 6x1. A partir de <b>15/12/2026</b>: no máximo <b>42 h por semana</b> e <b>2 folgas</b> semanais (de preferência no domingo). A partir de <b>16/12/2027</b>: <b>40 h</b>, até 8 h por dia, em 5 dias.</div>
     <div id="escDiag"><p class="mut">Analisando as batidas reais dos últimos meses...</p></div>
-    <details class="legenda" id="escParams" onchange="if (ESC.ultima) montarEscala('manter')"><summary>Funcionamento da loja e equipe (preenchido a partir das batidas, pode ajustar)</summary>
+    <details class="legenda" id="escParams" open onchange="aoMudarParam(event)"><summary>Movimento, equipe e funções (preenchido a partir das batidas, pode ajustar)</summary>
       <div class="scroll"><table id="escDias"></table></div>
-      <label>Equipe na escala</label><div class="chk" id="escPessoas"></div>
+      <label>Equipe e função de cada pessoa</label><div id="escPessoas" class="esc-pessoas"></div>
+      <label>Mínimo de cada função na loja, por dia aberto</label><div id="escFuncMin" class="chk"></div>
       <div class="linha"><div><label>Limite semanal</label><select id="escLimite"><option value="42">42 h (de 15/12/2026 a 15/12/2027)</option><option value="40">40 h (a partir de 16/12/2027)</option></select></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
@@ -1757,7 +1764,8 @@ function pintarDiagnostico() {
 
 function preencherParametros() {
   var r = ESC.real, padrao = [[480, 1020], [480, 1020], [480, 1020], [480, 1020], [480, 1020], [540, 840], [null, null]];
-  el('escDias').innerHTML = '<tr><th>Dia</th><th>Abre?</th><th>Abre às</th><th>Fecha às</th><th>Mínimo de pessoas</th><th class="mut">Hoje (média)</th></tr>' +
+  var maxMed = Math.max.apply(null, r.dia.map(function (d) { return d.media || 0; }).concat([0]));
+  el('escDias').innerHTML = '<tr><th>Dia</th><th>Abre?</th><th>Abre às</th><th>Fecha às</th><th>Movimento</th><th>Mínimo de pessoas</th><th class="mut">Hoje (média)</th></tr>' +
     DIAS_SEM.map(function (n, i) {
       var d = r.dia[i] || {}, temDados = r.pessoas.length > 0;
       var aberto = temDados ? d.aberto : padrao[i][0] !== null;
@@ -1766,15 +1774,57 @@ function preencherParametros() {
       var minimo = aberto ? Math.max(1, Math.round((d.media || 2) * 0.75)) : 0;
       return '<tr><td><b>' + n + '</b></td><td><input type="checkbox" id="escA' + i + '"' + (aberto ? ' checked' : '') + '></td>' +
         '<td><input id="escI' + i + '" value="' + (ini !== null ? hhmm(ini) : '08:00') + '"></td><td><input id="escF' + i + '" value="' + (fim !== null ? hhmm(fim) : '17:00') + '"></td>' +
+        '<td><select id="escV' + i + '">' + ['fraco', 'normal', 'forte'].map(function (v) {
+          var rel = maxMed ? (d.media || 0) / maxMed : 1, auto = rel < 0.85 ? 'fraco' : (rel > 0.98 ? 'forte' : 'normal');
+          return '<option value="' + v + '"' + (v === auto ? ' selected' : '') + '>' + v.charAt(0).toUpperCase() + v.slice(1) + '</option>';
+        }).join('') + '</select></td>' +
         '<td><input id="escM' + i + '" inputmode="numeric" value="' + minimo + '"></td><td class="mut">' + (d.media ? d.media.toFixed(1).replace('.', ',') : '–') + '</td></tr>';
     }).join('');
   var comPonto = {}; r.pessoas.forEach(function (p) { comPonto[p.id] = 1; });
   var gente = (S.admin ? colabsPonto() : []).filter(function (c) { return c.ativo; });
   if (!gente.length) gente = r.pessoas;
+  var cfg = cfgEscala(), funcoes = FUNCOES_PADRAO.slice();
+  gente.forEach(function (c) { if (c.cargo && !/admin|dev/i.test(c.cargo) && funcoes.indexOf(c.cargo) < 0) funcoes.push(c.cargo); });
+  ESC.funcoes = funcoes;
   el('escPessoas').innerHTML = gente.map(function (c) {
     var marcar = !r.pessoas.length || comPonto[c.id];
-    return '<label><input type="checkbox" data-id="' + esc(c.id) + '" data-nome="' + esc(c.nome) + '"' + (marcar ? ' checked' : '') + '> ' + esc(c.nome) + '</label>';
+    var f = cfg.funcao[c.id] || (funcoes.indexOf(c.cargo) >= 0 ? c.cargo : FUNCOES_PADRAO[0]);
+    return '<div><label><input type="checkbox" data-id="' + esc(c.id) + '" data-nome="' + esc(c.nome) + '"' + (marcar ? ' checked' : '') + '> ' + esc(c.nome) + '</label>' +
+      '<select class="escFun" data-id="' + esc(c.id) + '">' + funcoes.map(function (x) { return '<option' + (x === f ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></div>';
   }).join('');
+  pintarFuncMin();
+}
+
+var FUNCOES_PADRAO = ['Vendedor(a)', 'Caixa', 'Supervisor(a)', 'Estoque'];
+function cfgEscala() { try { var c = JSON.parse(ler('escCfg') || '{}'); c.funcao = c.funcao || {}; c.minFunc = c.minFunc || {}; return c; } catch (x) { return { funcao: {}, minFunc: {} }; } }
+function salvarCfgEscala() {
+  var c = cfgEscala();
+  document.querySelectorAll('#escPessoas .escFun').forEach(function (s) { c.funcao[s.dataset.id] = s.value; });
+  document.querySelectorAll('#escFuncMin input').forEach(function (x) { c.minFunc[x.dataset.f] = Number(x.value) || 0; });
+  guardar('escCfg', JSON.stringify(c));
+}
+/** Campos de mínimo só para as funções que alguém da escala tem. Padrão: 1 caixa e 1 supervisor(a). */
+function pintarFuncMin() {
+  var cfg = cfgEscala(), usadas = [];
+  document.querySelectorAll('#escPessoas > div').forEach(function (d) {
+    if (d.querySelector('input').checked) { var f = d.querySelector('select').value; if (usadas.indexOf(f) < 0) usadas.push(f); }
+  });
+  el('escFuncMin').innerHTML = usadas.map(function (f) {
+    var v = cfg.minFunc[f] !== undefined ? cfg.minFunc[f] : (/caixa|supervis/i.test(f) ? 1 : 0);
+    return '<label>' + esc(f) + ' <input type="number" min="0" data-f="' + esc(f) + '" value="' + v + '"></label>';
+  }).join('') || '<span class="mut">Marque a equipe acima.</span>';
+}
+/** Movimento muda o mínimo do dia (fraco ≈ metade da equipe, normal ≈ 2/3, forte = todos menos 1). */
+function aoMudarParam(ev) {
+  var t = ev.target;
+  var n = document.querySelectorAll('#escPessoas input:checked').length;
+  if (t.id && t.id.indexOf('escV') === 0) {
+    var i = t.id.slice(4), fator = { fraco: 0.5, normal: 0.67, forte: 1 }[t.value];
+    el('escM' + i).value = Math.max(1, t.value === 'forte' ? n - 1 : Math.round(n * fator));
+  }
+  if (t.classList && (t.classList.contains('escFun') || t.type === 'checkbox')) pintarFuncMin();
+  salvarCfgEscala();
+  if (ESC.ultima) montarEscala('manter');
 }
 
 /** Lê o formulário: funcionamento da loja, equipe, limite e semanas. */
@@ -1787,8 +1837,13 @@ function lerParametros() {
     return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0),
       trab: Math.max(0, dur - almoco), meio: meio, almoco: almoco };
   });
-  var pessoas = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) { return { id: x.dataset.id, nome: x.dataset.nome }; });
-  return { dias: dias, pessoas: pessoas, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value) };
+  var pessoas = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) {
+    var sel = x.closest('div').querySelector('select');
+    return { id: x.dataset.id, nome: x.dataset.nome, funcao: sel ? sel.value : '' };
+  });
+  var minFunc = {};
+  document.querySelectorAll('#escFuncMin input').forEach(function (x) { minFunc[x.dataset.f] = Math.max(0, Number(x.value) || 0); });
+  return { dias: dias, pessoas: pessoas, minFunc: minFunc, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value) };
 }
 
 /** Célula: 'T' dia inteiro · 'M' meio período (4 h a partir da abertura) · 'F' folga. */
@@ -1812,7 +1867,7 @@ function montarEscala(modo) {
       });
     }) });
   }
-  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite };
+  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite, minFunc: P.minFunc };
   if (modo === 'sugerir') sugerirFolgas();
   recalcularEscala();
 }
@@ -1824,22 +1879,26 @@ function sugerirFolgas() {
   e.semanas.forEach(function (s, w) {
     s.grade = e.pessoas.map(function () { return dias.map(function (d) { return d.aberto ? 'T' : 'F'; }); });
     var equipe = dias.map(function (d) { return d.aberto ? e.pessoas.length : 0; });
+    var porFunc = {};   // porFunc[função][dia] = quantas pessoas dessa função trabalham
+    e.pessoas.forEach(function (p) { porFunc[p.funcao] = porFunc[p.funcao] || dias.map(function () { return 0; }); dias.forEach(function (d, i) { if (d.aberto) porFunc[p.funcao][i]++; }); });
     var ordem = e.pessoas.map(function (p, i) { return i; });
     ordem = ordem.slice(w % ordem.length).concat(ordem.slice(0, w % ordem.length));
     ordem.forEach(function (pi) {
       var g = s.grade[pi];
       function folgas() { return g.filter(function (x) { return x === 'F'; }).length; }
       function minutos() { return g.reduce(function (a, x, i) { return a + horasCel(x, dias[i]); }, 0); }
-      if (dias[6].aberto && domSeguidos[pi] >= 2) { g[6] = 'F'; equipe[6]--; }
+      var fu = e.pessoas[pi].funcao, minF = (e.minFunc || {})[fu] || 0;
+      if (dias[6].aberto && domSeguidos[pi] >= 2) { g[6] = 'F'; equipe[6]--; porFunc[fu][6]--; }
       var pref = abertos.length ? abertos[(pi + w) % abertos.length] : -1;
       while ((folgas() < 2 || minutos() > e.limite) && g.some(function (x) { return x !== 'F'; })) {
         var melhor = -1, nota = -1e9;
         g.forEach(function (x, i) {
           if (x === 'F') return;
-          var n = (equipe[i] - dias[i].min) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0);
+          var n = (equipe[i] - dias[i].min) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0) +
+            (porFunc[fu][i] - 1 < minF ? -1000 : (porFunc[fu][i] - minF) * 4);   // não deixa a função sem cobertura
           if (n > nota) { nota = n; melhor = i; }
         });
-        g[melhor] = 'F'; equipe[melhor]--;
+        g[melhor] = 'F'; equipe[melhor]--; porFunc[fu][melhor]--;
       }
       domSeguidos[pi] = g[6] === 'F' || !dias[6].aberto ? 0 : domSeguidos[pi] + 1;
     });
@@ -1860,7 +1919,8 @@ function alternarCel(w, pi, i) {
 function recalcularEscala() {
   var e = ESC.ultima; if (!e) return;
   var P = lerParametros();
-  e.dias = P.dias; e.limite = P.limite;
+  e.dias = P.dias; e.limite = P.limite; e.minFunc = P.minFunc;
+  P.pessoas.forEach(function (p) { e.pessoas.forEach(function (q) { if (q.id === p.id) q.funcao = p.funcao; }); });
   var dias = e.dias, irr = [], marca = {};   // marca['w-pi'] = true (linha) · marca['w-pi-i'] = true (célula) · marca['c-w-i'] (cobertura)
   function add(chave, txt, nivel) { irr.push({ txt: txt, nivel: nivel || 'err' }); marca[chave] = nivel || 'err'; }
   var seguidos = e.pessoas.map(function () { return 0; }), domSeg = e.pessoas.map(function () { return 0; }), ultimoFim = e.pessoas.map(function () { return null; });
@@ -1889,7 +1949,15 @@ function recalcularEscala() {
         if (domSeg[pi] >= 3) add(w + '-' + pi + '-6', rot + ' · ' + p.nome + ': 3º domingo seguido trabalhando (comércio: folga no domingo ao menos 1 a cada 3 semanas).', 'aviso');
       }
     });
+    s.func = {};
+    Object.keys(e.minFunc || {}).forEach(function (f) {
+      s.func[f] = dias.map(function (d, i) { return e.pessoas.reduce(function (a, p, pi) { return a + (d.aberto && p.funcao === f && s.grade[pi][i] !== 'F' ? 1 : 0); }, 0); });
+    });
     dias.forEach(function (d, i) {
+      if (!d.aberto) return;
+      Object.keys(e.minFunc || {}).forEach(function (f) {
+        if (e.minFunc[f] > 0 && s.func[f][i] < e.minFunc[f]) add('c-' + w + '-' + i, rot + ' · ' + d.nome + ': ' + (s.func[f][i] ? 'só ' + s.func[f][i] : 'nenhum(a)') + ' ' + f + ' na loja (mínimo ' + e.minFunc[f] + ').', 'aviso');
+      });
       if (d.aberto && s.equipe[i] < d.min) add('c-' + w + '-' + i, rot + ' · ' + d.nome + ': ' + s.equipe[i] + ' pessoa(s) na loja, mínimo ' + d.min + '.', 'aviso');
     });
   });
@@ -1927,7 +1995,7 @@ function pintarEscala() {
       dias.map(function (d) { return '<th>' + d.nome + '</th>'; }).join('') + '<th>Horas</th></tr>' +
       e.pessoas.map(function (p, pi) {
         var linhaRuim = marca[w + '-' + pi];
-        return '<tr' + (linhaRuim ? ' class="ruim"' : '') + '><td>' + (linhaRuim ? '⛔ ' : '') + esc(p.nome) + '</td>' + s.grade[pi].map(function (x, i) {
+        return '<tr' + (linhaRuim ? ' class="ruim"' : '') + '><td>' + (linhaRuim ? '⛔ ' : '') + esc(p.nome) + (p.funcao ? '<span class="ftag">' + esc(p.funcao) + '</span>' : '') + '</td>' + s.grade[pi].map(function (x, i) {
           var d = dias[i];
           if (!d.aberto) return '<td class="fe">fechado</td>';
           var m = marca[w + '-' + pi + '-' + i], cls = (x === 'F' ? 'fo' : (x === 'M' ? 'me' : 'tr')) + (m ? ' ' + (m === 'err' ? 'xerr' : 'xav') : '');
@@ -1935,9 +2003,12 @@ function pintarEscala() {
           return '<td class="cel ' + cls + '" onclick="alternarCel(' + w + ',' + pi + ',' + i + ')">' + txt + '</td>';
         }).join('') + '<td class="' + (s.min[pi] > e.limite ? 'neg' : '') + '">' + hNum(s.min[pi]) + ' h</td></tr>';
       }).join('') +
-      '<tr class="cob"><td>Na loja / mínimo</td>' + dias.map(function (d, i) {
+      '<tr class="cob"><td>Na loja / mínimo<span class="fcob mut">por função</span></td>' + dias.map(function (d, i) {
         if (!d.aberto) return '<td class="fe">–</td>';
-        return '<td class="' + (s.equipe[i] < d.min ? 'falta' : 'sobra') + '">' + s.equipe[i] + '/' + d.min + '</td>';
+        var fx = Object.keys(e.minFunc || {}).filter(function (f) { return e.minFunc[f] > 0; }).map(function (f) {
+          return '<span class="fcob ' + (s.func[f][i] < e.minFunc[f] ? 'falta' : 'sobra') + '">' + esc(f.split(/[ (]/)[0]) + ' ' + s.func[f][i] + '/' + e.minFunc[f] + '</span>';
+        }).join('');
+        return '<td class="' + (s.equipe[i] < d.min ? 'falta' : 'sobra') + '">' + s.equipe[i] + '/' + d.min + fx + '</td>';
       }).join('') + '<td></td></tr></table></div>';
   });
   el('escRes').innerHTML = html;
@@ -1945,10 +2016,10 @@ function pintarEscala() {
 
 function baixarEscalaCsv() {
   var e = ESC.ultima; if (!e) return;
-  var linhas = [['Semana', 'Colaborador(a)'].concat(DIAS_SEM).concat(['Horas'])];
+  var linhas = [['Semana', 'Colaborador(a)', 'Função'].concat(DIAS_SEM).concat(['Horas'])];
   e.semanas.forEach(function (s, w) {
     e.pessoas.forEach(function (p, pi) {
-      linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome].concat(s.grade[pi].map(function (x, i) {
+      linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome, p.funcao || ''].concat(s.grade[pi].map(function (x, i) {
         var d = e.dias[i]; return !d.aberto ? 'fechado' : (x === 'T' ? hhmm(d.ini) + '-' + hhmm(d.fim) : (x === 'M' ? hhmm(d.ini) + '-' + hhmm(d.ini + d.meio) : 'Folga'));
       })).concat([hNum(s.min[pi])]));
     });
