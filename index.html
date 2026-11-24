@@ -135,6 +135,43 @@
   .badge { display:inline-block; font-size:11px; font-weight:700; border-radius:6px; padding:1px 7px; margin-left:6px; background:var(--vinho-claro); color:var(--vinho); }
   .badge.off { background:#eee; color:#777; }
   .tipo-item { border-top:1px solid var(--bd); padding:10px 0; font-size:13.5px; line-height:1.5; }
+  .tp-grupo { margin:16px 0 6px; font:600 18px var(--serif); color:var(--vinho); display:flex; align-items:center; gap:8px; }
+  .tp-grupo small { font:500 12px var(--sans); color:var(--mut); }
+  .tp-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+  .tp-card { border:1px solid var(--bd); border-radius:14px; padding:14px; background:#fff; display:flex; flex-direction:column; gap:8px; transition:box-shadow .15s, opacity .15s; }
+  .tp-card:hover { box-shadow:var(--sombra); }
+  .tp-card.off { opacity:.55; background:var(--bg); }
+  .tp-card .topo { display:flex; align-items:flex-start; gap:10px; }
+  .tp-card .ic { font-size:22px; line-height:1; }
+  .tp-card .nome { font-weight:600; font-size:14.5px; flex:1; }
+  .tp-card .quando { font-size:13px; color:var(--mut); }
+  .pills { display:flex; flex-wrap:wrap; gap:6px; }
+  .pill { font-size:12px; font-weight:600; border-radius:999px; padding:3px 9px; background:var(--bg); border:1px solid var(--bd); color:var(--txt); white-space:nowrap; }
+  .pill.pos { background:var(--ok-bg); border-color:#CFE6D7; color:var(--ok); }
+  .pill.neg { background:var(--err-bg); border-color:#F3D3D0; color:var(--err); }
+  .pill.inf { background:#EAF0FB; border-color:#D3DEF3; color:#2F5AA8; }
+  .tp-card .acoes { display:flex; gap:8px; align-items:center; margin-top:auto; }
+  .switch { display:inline-flex !important; align-items:center; gap:8px; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; font-size:13.5px !important; font-weight:500 !important; color:var(--txt) !important; margin:0 !important; }
+  .switch input { display:none; }
+  .switch i { width:38px; height:22px; border-radius:999px; background:#D9CDD1; position:relative; transition:background .15s; flex:0 0 auto; }
+  .switch i::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s; }
+  .switch input:checked + i { background:var(--ok); }
+  .switch input:checked + i::after { left:19px; }
+  .tp-form { margin-top:18px; border:1px solid var(--bd); border-radius:16px; padding:16px; background:var(--bg); }
+  .tp-passo { display:flex; gap:12px; margin-top:14px; }
+  .tp-passo > span { flex:0 0 28px; height:28px; border-radius:50%; background:var(--vinho); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; margin-top:12px; }
+  .tp-passo > div { flex:1; min-width:0; }
+  .seg { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
+  .seg button { border:1px solid var(--bd); background:#fff; border-radius:12px; padding:10px; text-align:left; cursor:pointer; font:500 13px var(--sans); color:var(--txt); line-height:1.35; }
+  .seg button b { display:block; font-size:16px; color:var(--vinho); margin-bottom:2px; }
+  .seg button.on { border-color:var(--vinho); box-shadow:0 0 0 2px var(--vinho) inset; background:var(--vinho-claro); }
+  .tp-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .tp-chips label { display:inline-flex !important; align-items:center; margin:0 !important; text-transform:none !important; letter-spacing:0 !important; font-size:13px !important; font-weight:500 !important; color:var(--txt) !important; border:1px solid var(--bd); border-radius:999px; padding:5px 12px; background:#fff; cursor:pointer; }
+  .tp-chips label:has(input:checked) { background:var(--vinho); color:#fff !important; border-color:var(--vinho); }
+  .tp-chips input { display:none; }
+  .tp-sim { width:100%; margin-top:6px; background:#fff; border:1px solid var(--bd); border-radius:12px; }
+  .tp-sim td, .tp-sim th { padding:8px 10px; font-size:13px; }
+  #tpPrev { margin-top:16px; }
   .tag-al { display:inline-block; background:#FFF4E0; color:#9A6200; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:600; margin:1px 2px 1px 0; }
   .fech .mais { width:26px; height:26px; border-radius:50%; border:1px solid var(--vinho); background:#fff; color:var(--vinho); font:600 16px var(--sans); line-height:22px; cursor:pointer; padding:0; }
   .fech .mais.aberto { background:var(--vinho); color:#fff; }
@@ -432,7 +469,8 @@
     <label>O que você quer fazer?</label>
     <select id="jTipo" onchange="explicarAjuste()"></select>
     <div id="jExplica" class="explica"></div>
-    <div id="jHorasBox" class="hide"><label>Horas (ex.: 2,5 ou -1)</label><input id="jHoras" inputmode="decimal"></div>
+    <div id="jHorasBox" class="hide"><label>Horas (ex.: 2,5 ou -1)</label><div class="filtro"><input id="jHoras" inputmode="decimal" style="width:110px" oninput="this.dataset.auto=''">
+      <span class="sug" onclick="horasAjuste(1)">1 h</span><span class="sug" onclick="horasAjuste(2)">2 h</span><span class="sug" onclick="horasAjuste(4)">4 h</span><span class="sug" onclick="horasAjuste(8)">8 h</span><span class="sug" onclick="horasAjuste(-1)">−1 h</span></div></div>
     <label>Observação (aparece no espelho)</label>
     <input id="jObs" list="obsList" placeholder="ex.: ATESTADO, FOLGA, Abonar Horas">
     <datalist id="obsList"><option>Abonar Horas</option><option>Abonar Almoço</option><option>ATESTADO</option><option>DECLARAÇÃO</option><option>FOLGA</option><option>FOLGA ANIVERSÁRIO</option></datalist>
@@ -463,32 +501,37 @@
   </div>
 
   <div class="card at hide" id="at-tipos">
-    <h2>Tipos de ajuste</h2>
-    <p class="mut">Cada ajuste define o que acontece com as horas, o banco e o pagamento do dia, e para quais alertas do fechamento ele é sugerido. <b>Atenção:</b> mudar um tipo recalcula todos os meses em que ele já foi usado.</p>
+    <div class="topo-filtro"><h2 style="margin:0">Tipos de ajuste</h2>
+      <div class="filtro"><input id="tpBusca" placeholder="Buscar..." oninput="pintarTipos()" style="width:160px">
+        <select id="tpFiltro" onchange="pintarTipos()" style="width:auto"><option value="">Todos</option><option value="SIM">Ativos</option><option value="NÃO">Desativados</option></select>
+        <button class="btn peq" onclick="editarTipo('')">+ Novo tipo</button></div></div>
+    <p class="mut">Cada cartão mostra, em uma linha, o que o ajuste faz com as <b>horas do dia</b>, o <b>banco de horas</b> e o <b>pagamento</b>. Toque no interruptor para ativar ou desativar; em <b>Editar</b> você vê uma simulação com a jornada real (<span id="tpJornada">8 h; sábado 4 h</span> · <span class="lk" onclick="abaAdmin('regras')">mudar jornada</span>).</p>
     <div id="tpLista"></div>
-    <button class="btn" onclick="editarTipo('')">+ Novo tipo de ajuste</button>
-    <div id="tpForm" class="hide" style="margin-top:14px;border-top:1px solid var(--bd);padding-top:6px">
-      <h3 id="tpTit"></h3>
-      <label>Nome</label><input id="tpRot" oninput="previaTipo()">
-      <label>Texto curto do botão de sugestão (e do espelho)</label><input id="tpChip">
-      <label>Quando usar</label><textarea id="tpQuando" rows="2"></textarea>
+    <div id="tpForm" class="hide tp-form">
+      <div class="topo-filtro"><h3 id="tpTit" style="margin:0"></h3><button class="btn sec peq" onclick="fecharTipo()">✕ Fechar</button></div>
+      <div class="tp-passo"><span>1</span><div>
+        <label>Nome</label><input id="tpRot" oninput="previaTipo()">
+        <div class="linha"><div><label>Texto curto (botão de sugestão e espelho)</label><input id="tpChip" oninput="previaTipo()"></div></div>
+        <label>Quando usar</label><textarea id="tpQuando" rows="2"></textarea></div></div>
       <div id="tpParams">
-        <label>Horas que o dia passa a contar</label>
-        <select id="tpHM" onchange="previaTipo()"><option value="NENHUMA">Nenhuma (não conta horas)</option><option value="JORNADA">A jornada inteira (8h; sábado 4h)</option><option value="METADE">Metade da jornada</option><option value="NEG_JORNADA">Menos a jornada inteira</option><option value="INFORMADO">As horas que eu informar na hora</option></select>
-        <label>Efeito no banco de horas</label>
-        <select id="tpSM" onchange="previaTipo()"><option value="ZERO">Não mexe no banco</option><option value="HORAS">O banco recebe o mesmo valor das horas</option><option value="HORAS_MENOS_JORNADA">O banco recebe horas − jornada (o que faltou sai do banco)</option><option value="INFORMADO">Soma ao banco as horas que eu informar</option></select>
-        <div class="linha"><div><label>Paga o dia?</label><select id="tpPaga" onchange="previaTipo()"><option value="SIM">Sim</option><option value="NÃO">Não</option></select></div>
-        <div><label>Paga passagem?</label><select id="tpPas" onchange="previaTipo()"><option value="NÃO">Não</option><option value="SIM">Sim</option></select></div></div>
-        <p class="mut">Cuidado com "Paga o dia": se o dia já tem batidas, ele já foi pago por elas. Use "Sim" só para dias sem batida (falta abonada, folga).</p>
+        <div class="tp-passo"><span>2</span><div><label>Horas que o dia passa a contar</label>
+          <div class="seg" data-campo="tpHM"></div><input type="hidden" id="tpHM">
+          <div id="tpHorasBox" class="hide"><label>Horas sugeridas (já vêm preenchidas no ajuste; dá para mudar na hora)</label>
+            <div class="filtro"><input id="tpHP" inputmode="decimal" style="width:90px" oninput="previaTipo()" placeholder="ex.: 2">
+            <span class="sug" onclick="horasPreset(1)">1 h</span><span class="sug" onclick="horasPreset(2)">2 h</span><span class="sug" onclick="horasPreset(4)">4 h</span><span class="sug" onclick="horasPreset(8)">8 h</span><span class="sug" onclick="horasPreset(-1)">−1 h</span></div></div>
+        </div></div>
+        <div class="tp-passo"><span>3</span><div><label>Banco de horas</label><div class="seg" data-campo="tpSM"></div><input type="hidden" id="tpSM"></div></div>
+        <div class="tp-passo"><span>4</span><div><label>Pagamento</label>
+          <div class="filtro"><label class="switch"><input type="checkbox" id="tpPaga" onchange="previaTipo()"><i></i> Paga o dia</label>
+          <label class="switch"><input type="checkbox" id="tpPas" onchange="previaTipo()"><i></i> Paga passagem</label></div>
+          <p class="mut">"Paga o dia" é para dias <b>sem batida</b> (falta abonada, folga). Dia com batida já é pago pelas batidas.</p></div></div>
       </div>
-      <div id="tpEfeitoBox" class="hide"><label>O que acontece (texto de ajuda)</label><textarea id="tpEfeito" rows="3"></textarea>
-        <p class="mut">Este tipo é tratado de forma especial pelo cálculo (batida de horário ou observação): dá para mudar nome, textos e sugestões, mas não as regras.</p></div>
-      <label>Sugerir este ajuste quando aparecer o alerta:</label>
-      <div id="tpAlertas" class="chk"></div>
-      <label class="chk1"><input type="checkbox" id="tpAtivo" checked> Ativo (aparece na lista de ajustes)</label>
-      <div class="explica" id="tpPrev"></div>
+      <div id="tpEfeitoBox" class="hide tp-passo"><span>🔒</span><div><label>O que acontece (texto de ajuda)</label><textarea id="tpEfeito" rows="3"></textarea>
+        <p class="mut">Tipo especial do cálculo (batida de horário ou observação): dá para mudar nome, textos e sugestões, mas não as regras.</p></div></div>
+      <div class="tp-passo"><span id="tpPassoAl">5</span><div><label>Sugerir este ajuste quando aparecer o alerta</label><div id="tpAlertas" class="tp-chips"></div>
+        <label class="switch" style="margin-top:10px"><input type="checkbox" id="tpAtivo" checked><i></i> Ativo (aparece na lista de ajustes)</label></div></div>
+      <div id="tpPrev"></div>
       <button class="btn" onclick="salvarTipo()">Salvar tipo</button>
-      <button class="btn sec" onclick="el('tpForm').classList.add('hide')">Cancelar</button>
     </div>
   </div>
 
@@ -1222,8 +1265,9 @@ function nomeAlerta(cod) { var a = (S.alertasCat || []).filter(function (x) { re
 
 function descreverTipo(t) {
   if (t.sistema === 'ESTRUTURAL') return t.efeito || '';
-  var h = { NENHUMA: 'Não conta horas trabalhadas.', JORNADA: 'Conta a jornada inteira como trabalhada (8h; sábado 4h).', METADE: 'Conta metade da jornada como trabalhada (4h; sábado 2h).',
-    NEG_JORNADA: 'Tira a jornada inteira das horas do dia (−8h; sábado −4h).', INFORMADO: 'Conta como trabalhadas as horas que você informar.' }[t.horas_modo];
+  var J = jornadaReal();
+  var h = { NENHUMA: 'Não conta horas trabalhadas.', JORNADA: 'Conta a jornada inteira como trabalhada (' + hFmt(J.ss) + '; sábado ' + hFmt(J.sab) + ').', METADE: 'Conta metade da jornada como trabalhada (' + hFmt(J.ss / 2) + '; sábado ' + hFmt(J.sab / 2) + ').',
+    NEG_JORNADA: 'Tira a jornada inteira das horas do dia (−' + hFmt(J.ss) + '; sábado −' + hFmt(J.sab) + ').', INFORMADO: 'Conta como trabalhadas as horas que você informar.' }[t.horas_modo];
   var s = { ZERO: 'Não altera o banco de horas.', HORAS: 'O banco recebe o mesmo valor das horas acima (positivo soma, negativo tira).',
     HORAS_MENOS_JORNADA: 'O banco recebe horas − jornada: o que faltou para a jornada inteira sai do banco.', INFORMADO: 'Soma ao banco as horas informadas (negativo tira).' }[t.saldo_modo];
   var p = t.paga_dia === 'SIM' ? 'Paga o dia' + (t.passagem === 'SIM' ? ', com passagem.' : ', sem passagem.') : 'Não paga o dia.';
@@ -1248,7 +1292,10 @@ function explicarAjuste() {
   var sg = sugeridoPara(t);
   el('jExplica').innerHTML = '<b>Quando usar:</b> ' + esc(t.quando) + '<br><b>O que acontece:</b> ' + esc(descreverTipo(t)) + (sg ? '<br><b>Sugerido para:</b> ' + esc(sg) : '');
   el('jHorasBox').classList.toggle('hide', !pedeHoras(t));
+  var hp = horasPadraoDe(t);
+  if (pedeHoras(t) && hp !== '' && (!el('jHoras').value || el('jHoras').dataset.auto === '1')) { el('jHoras').value = vBR(hp); el('jHoras').dataset.auto = '1'; }
 }
+function horasAjuste(h) { el('jHoras').value = vBR(h); el('jHoras').dataset.auto = ''; }
 
 // O que sugerir para cada alerta do fechamento (vem da configuração de cada tipo).
 function codigoAlerta(a) {
@@ -1581,29 +1628,114 @@ function excluirFeriado(data) {
 }
 
 // ---------- Tipos de ajuste (editar / criar) ----------
+function jornadaReal() {
+  var j = (S.regras && S.regras.jornada) || {}, n = function (v, d) { v = Number(String(v === undefined || v === null ? '' : v).replace(',', '.')); return isNaN(v) || v === 0 && d ? d : v; };
+  return { ss: n(j.seg_sex, 8), sab: n(j.sabado, 4) };
+}
+function hFmt(h) { var neg = h < 0; h = Math.abs(h); var m = Math.round(h * 60); return (neg ? '−' : '') + Math.floor(m / 60) + 'h' + (m % 60 ? ('0' + (m % 60)).slice(-2) : ''); }
+function horasPadraoDe(t) {
+  if (!t) return '';
+  if (t.horas_padrao !== undefined && t.horas_padrao !== '') return t.horas_padrao;
+  try { var m = JSON.parse(ler('tpHorasPadrao') || '{}'); return m[t.codigo] !== undefined ? m[t.codigo] : ''; } catch (x) { return ''; }
+}
+/** Efeito numérico de um tipo num dia sem batida com jornada J (para a simulação e os selos). */
+function efeitoTipo(t, J, hInf) {
+  var h = { NENHUMA: 0, JORNADA: J, METADE: J / 2, NEG_JORNADA: -J, INFORMADO: hInf }[t.horas_modo];
+  var b = { ZERO: 0, HORAS: h, HORAS_MENOS_JORNADA: h - J, INFORMADO: hInf }[t.saldo_modo];
+  return { horas: h, banco: b, paga: t.paga_dia === 'SIM', pas: t.paga_dia === 'SIM' && t.passagem === 'SIM' };
+}
+var TP_HM = [['NENHUMA', '0 h', 'Não conta horas'], ['JORNADA', 'Jornada', 'Conta o dia inteiro'], ['METADE', 'Metade', 'Meio dia'], ['NEG_JORNADA', '− Jornada', 'Tira o dia inteiro'], ['INFORMADO', 'Eu informo', 'Horas digitadas no ajuste']];
+var TP_SM = [['ZERO', 'Não mexe', 'Banco fica igual'], ['HORAS', '= Horas', 'Banco recebe as horas do dia'], ['HORAS_MENOS_JORNADA', 'Horas − jornada', 'O que faltou sai do banco'], ['INFORMADO', 'Eu informo', 'Soma ao banco o que eu digitar']];
+function grupoTipo(t) {
+  if (t.grava_como === 'OBSERVACAO' || t.codigo === 'OBSERVACAO') return t.codigo === 'OBSERVACAO' ? 'Anotações' : 'Abonos de horas';
+  if (t.sistema === 'ESTRUTURAL') return 'Corrigir batidas';
+  if (t.saldo_modo === 'INFORMADO' || t.horas_modo === 'NEG_JORNADA') return 'Banco de horas';
+  return 'Abonos e folgas';
+}
+var TP_GRUPOS = { 'Corrigir batidas': ['🕘', 'grava um horário que faltou ou estava errado'], 'Abonos e folgas': ['📄', 'faltas justificadas e meios períodos'],
+  'Abonos de horas': ['✅', 'perdoa atraso, saída antecipada ou almoço'], 'Banco de horas': ['🏦', 'folga compensada e acertos de saldo'], 'Anotações': ['📝', 'só lembrete no espelho'] };
+function pillsTipo(t) {
+  if (t.sistema === 'ESTRUTURAL') return '<span class="pill inf">⏱ ' + esc(t.grava_como === 'OBSERVACAO' ? 'regra especial do cálculo' : 'grava a batida informada') + '</span>';
+  var J = jornadaReal().ss, hp = horasPadraoDe(t), e = efeitoTipo(t, J, hp === '' ? null : Number(String(hp).replace(',', '.')));
+  var hTxt = t.horas_modo === 'INFORMADO' ? (hp !== '' ? 'informa (sugere ' + hFmt(e.horas) + ')' : 'informa na hora') : (e.horas ? (e.horas > 0 ? '+' : '') + hFmt(e.horas) : '0 h');
+  var bTxt = t.saldo_modo === 'INFORMADO' ? (hp !== '' ? 'informa (sugere ' + hFmt(Number(String(hp).replace(',', '.'))) + ')' : 'informa na hora') : (t.saldo_modo === 'ZERO' ? 'não mexe' : (e.banco === null ? (t.saldo_modo === 'HORAS' ? '= horas informadas' : 'informadas − jornada') : (e.banco > 0 ? '+' : '') + hFmt(e.banco)));
+  return '<span class="pill ' + (t.horas_modo === 'INFORMADO' ? 'inf' : e.horas > 0 ? 'pos' : e.horas < 0 ? 'neg' : '') + '">⏱ Horas: ' + hTxt + '</span>' +
+    '<span class="pill ' + (t.saldo_modo === 'INFORMADO' ? 'inf' : e.banco > 0 ? 'pos' : e.banco < 0 ? 'neg' : '') + '">🏦 Banco: ' + bTxt + '</span>' +
+    '<span class="pill ' + (e.paga ? 'pos' : '') + '">💰 ' + (e.paga ? 'Paga o dia' : 'Não paga o dia') + '</span>' +
+    (e.paga ? '<span class="pill ' + (e.pas ? 'pos' : '') + '">🚌 ' + (e.pas ? 'Com passagem' : 'Sem passagem') + '</span>' : '');
+}
 function carregarTipos() {
   el('tpLista').innerHTML = '<p class="mut">Carregando...</p>';
-  garantirTipos(true).then(pintarTipos).catch(function (e) { msg('aMsg', e.message); });
+  var regras = S.regras ? Promise.resolve() : api('apiAdminRegras', S.token).then(function (r) { S.regras = r; }).catch(function () {});
+  Promise.all([garantirTipos(true), regras]).then(pintarTipos).catch(function (e) { msg('aMsg', e.message); });
 }
 function pintarTipos() {
+  var J = jornadaReal(); el('tpJornada').textContent = hFmt(J.ss) + '; sábado ' + hFmt(J.sab);
   var ro = { ESTRUTURAL: 'Estrutural', PADRAO: 'Padrão', PERSONALIZADO: 'Criado por você' };
-  el('tpLista').innerHTML = (S.tipos || []).map(function (t) {
-    var sg = sugeridoPara(t);
-    return '<div class="tipo-item"><b>' + esc(t.rotulo) + '</b><span class="badge">' + ro[t.sistema] + '</span>' + (t.ativo === 'NÃO' ? '<span class="badge off">desativado</span>' : '') +
-      '<br><span class="mut">Quando usar:</span> ' + esc(t.quando) + '<br><span class="mut">O que faz:</span> ' + esc(descreverTipo(t)) +
-      (sg ? '<br><span class="mut">Sugerido quando:</span> ' + esc(sg) : '') + '<br><span class="lk" onclick="editarTipo(\'' + esc(t.codigo) + '\')">editar</span></div>';
+  var busca = normalizar(el('tpBusca').value), filtro = el('tpFiltro').value, grupos = {};
+  (S.tipos || []).forEach(function (t) {
+    if (filtro && (t.ativo === 'NÃO' ? 'NÃO' : 'SIM') !== filtro) return;
+    if (busca && normalizar(t.rotulo + ' ' + t.quando + ' ' + t.chip).indexOf(busca) < 0) return;
+    (grupos[grupoTipo(t)] = grupos[grupoTipo(t)] || []).push(t);
+  });
+  var html = Object.keys(TP_GRUPOS).filter(function (g) { return grupos[g]; }).map(function (g) {
+    return '<div class="tp-grupo">' + TP_GRUPOS[g][0] + ' ' + g + ' <small>· ' + TP_GRUPOS[g][1] + '</small></div><div class="tp-cards">' + grupos[g].map(function (t) {
+      var sg = sugeridoPara(t), on = t.ativo !== 'NÃO';
+      return '<div class="tp-card' + (on ? '' : ' off') + '"><div class="topo"><div class="nome">' + esc(t.rotulo) + '<span class="badge' + (t.sistema === 'PERSONALIZADO' ? '' : ' off') + '">' + ro[t.sistema] + '</span></div>' +
+        '<label class="switch" title="Ativo"><input type="checkbox"' + (on ? ' checked' : '') + ' onchange="alternarTipo(\'' + esc(t.codigo) + '\', this.checked)"><i></i></label></div>' +
+        '<div class="quando">' + esc(t.quando) + '</div><div class="pills">' + pillsTipo(t) + '</div>' +
+        (sg ? '<div class="quando">💡 Sugerido quando: ' + esc(sg) + '</div>' : '') +
+        '<div class="acoes"><button class="btn sec peq" style="margin:0" onclick="editarTipo(\'' + esc(t.codigo) + '\')">Editar</button>' +
+        (t.sistema !== 'ESTRUTURAL' ? '<button class="btn sec peq" style="margin:0" onclick="duplicarTipo(\'' + esc(t.codigo) + '\')">Duplicar</button>' : '') + '</div></div>';
+    }).join('') + '</div>';
+  }).join('');
+  el('tpLista').innerHTML = html || '<p class="mut">Nenhum tipo encontrado.</p>';
+}
+function payloadTipo(t, mud) {
+  var d = { codigo: t.codigo, rotulo: t.rotulo, chip: t.chip, quando: t.quando, efeito: t.efeito || '', horas_modo: t.horas_modo, saldo_modo: t.saldo_modo,
+    paga_dia: t.paga_dia, passagem: t.passagem, sugerir_para: (t.sugerir_para || '').split(',').filter(Boolean), ativo: t.ativo !== 'NÃO', horas_padrao: horasPadraoDe(t) };
+  Object.keys(mud || {}).forEach(function (k) { d[k] = mud[k]; });
+  return d;
+}
+function gravarTipo(d, okMsg) {
+  carregando('Salvando...');
+  return api('apiAdminSalvarTipoAjuste', S.token, d).then(function (r) {
+    carregando(); S.tipos = r.tipos; S.alertasCat = r.alertas; tiposPromessa = Promise.resolve(r);
+    montarAjustes(); pintarTipos(); fechDados = null; msg('aMsg', okMsg, true); return r;
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); pintarTipos(); throw e; });
+}
+function alternarTipo(cod, ativo) {
+  var t = tipoAjuste(cod); if (!t) return;
+  gravarTipo(payloadTipo(t, { ativo: ativo }), (ativo ? 'Ativado: ' : 'Desativado: ') + t.rotulo).catch(function () {});
+}
+function duplicarTipo(cod) {
+  var t = tipoAjuste(cod); if (!t) return;
+  editarTipo('', { sistema: 'PERSONALIZADO', horas_modo: t.horas_modo, saldo_modo: t.saldo_modo, paga_dia: t.paga_dia, passagem: t.passagem, ativo: 'SIM',
+    sugerir_para: t.sugerir_para, rotulo: 'Cópia de ' + t.rotulo, chip: t.chip, quando: t.quando, horas_padrao: horasPadraoDe(t) });
+}
+function pintarSeg(campo, opcoes, valor) {
+  var box = document.querySelector('.seg[data-campo="' + campo + '"]'), J = jornadaReal();
+  el(campo).value = valor;
+  box.innerHTML = opcoes.map(function (o) {
+    var titulo = o[1] === 'Jornada' ? 'Jornada · ' + hFmt(J.ss) : (o[1] === 'Metade' ? 'Metade · ' + hFmt(J.ss / 2) : (o[1] === '− Jornada' ? '− ' + hFmt(J.ss) : o[1]));
+    return '<button type="button" class="' + (o[0] === valor ? 'on' : '') + '" onclick="escolherSeg(\'' + campo + '\',\'' + o[0] + '\')"><b>' + titulo + '</b>' + o[2] + '</button>';
   }).join('');
 }
-function editarTipo(cod) {
-  var t = cod ? tipoAjuste(cod) : { sistema: 'PERSONALIZADO', horas_modo: 'NENHUMA', saldo_modo: 'ZERO', paga_dia: 'NÃO', passagem: 'NÃO', ativo: 'SIM', sugerir_para: '', rotulo: '', chip: '', quando: '' };
+function escolherSeg(campo, v) { pintarSeg(campo, campo === 'tpHM' ? TP_HM : TP_SM, v); previaTipo(); }
+function horasPreset(h) { el('tpHP').value = vBR(h); previaTipo(); }
+function fecharTipo() { el('tpForm').classList.add('hide'); }
+function editarTipo(cod, base) {
+  var t = cod ? tipoAjuste(cod) : (base || { sistema: 'PERSONALIZADO', horas_modo: 'NENHUMA', saldo_modo: 'ZERO', paga_dia: 'NÃO', passagem: 'NÃO', ativo: 'SIM', sugerir_para: '', rotulo: '', chip: '', quando: '' });
   S.tipoEdit = cod || '';
   var estrut = t.sistema === 'ESTRUTURAL';
-  el('tpTit').textContent = cod ? 'Editar: ' + t.rotulo : 'Novo tipo de ajuste';
-  el('tpRot').value = t.rotulo; el('tpChip').value = t.chip; el('tpQuando').value = t.quando;
-  el('tpHM').value = t.horas_modo || 'NENHUMA'; el('tpSM').value = t.saldo_modo || 'ZERO';
-  el('tpPaga').value = t.paga_dia || 'NÃO'; el('tpPas').value = t.passagem || 'NÃO';
+  el('tpTit').textContent = cod ? 'Editar: ' + t.rotulo : (base ? 'Novo tipo (duplicado)' : 'Novo tipo de ajuste');
+  el('tpRot').value = t.rotulo || ''; el('tpChip').value = t.chip || ''; el('tpQuando').value = t.quando || '';
+  pintarSeg('tpHM', TP_HM, t.horas_modo || 'NENHUMA'); pintarSeg('tpSM', TP_SM, t.saldo_modo || 'ZERO');
+  el('tpHP').value = vBR(base ? base.horas_padrao : horasPadraoDe(t));
+  el('tpPaga').checked = t.paga_dia === 'SIM'; el('tpPas').checked = t.passagem === 'SIM';
   el('tpParams').classList.toggle('hide', estrut);
   el('tpEfeitoBox').classList.toggle('hide', !estrut); el('tpEfeito').value = t.efeito || '';
+  el('tpPassoAl').textContent = estrut ? '2' : '5';
   el('tpAtivo').checked = t.ativo !== 'NÃO';
   var marc = (t.sugerir_para || '').split(',');
   el('tpAlertas').innerHTML = (S.alertasCat || []).map(function (a) {
@@ -1616,25 +1748,43 @@ function editarTipo(cod) {
 function lerFormTipo() {
   var alertas = [].slice.call(el('tpAlertas').querySelectorAll('input:checked')).map(function (i) { return i.value; });
   return { codigo: S.tipoEdit, rotulo: el('tpRot').value, chip: el('tpChip').value, quando: el('tpQuando').value, efeito: el('tpEfeito').value,
-    horas_modo: el('tpHM').value, saldo_modo: el('tpSM').value, paga_dia: el('tpPaga').value, passagem: el('tpPas').value,
-    sugerir_para: alertas, ativo: el('tpAtivo').checked };
+    horas_modo: el('tpHM').value, saldo_modo: el('tpSM').value, paga_dia: el('tpPaga').checked ? 'SIM' : 'NÃO', passagem: el('tpPas').checked ? 'SIM' : 'NÃO',
+    sugerir_para: alertas, ativo: el('tpAtivo').checked, horas_padrao: nBR(el('tpHP').value) };
 }
+/** Simulação ao vivo: o que o ajuste faz num dia sem batida, com a jornada real. */
 function previaTipo() {
   var d = lerFormTipo(), at = S.tipoEdit ? tipoAjuste(S.tipoEdit) : null;
-  if (at && at.sistema === 'ESTRUTURAL') { el('tpPrev').innerHTML = ''; return; }
-  var passo = d.paga_dia === 'SIM' ? '' : '';
-  el('tpPrev').innerHTML = '<b>Resumo do que este ajuste fará:</b> ' + esc(descreverTipo({ sistema: 'PERSONALIZADO', horas_modo: d.horas_modo, saldo_modo: d.saldo_modo, paga_dia: d.paga_dia, passagem: d.passagem }));
+  if (at && at.sistema === 'ESTRUTURAL') { el('tpPrev').innerHTML = '<div class="explica">🔒 ' + esc(at.efeito || '') + '</div>'; return; }
+  var inf = d.horas_modo === 'INFORMADO' || d.saldo_modo === 'INFORMADO';
+  el('tpHorasBox').classList.toggle('hide', !inf);
+  var hp = d.horas_padrao === '' || isNaN(Number(d.horas_padrao)) ? 2 : Number(d.horas_padrao), J = jornadaReal();
+  var col = function (Jd) {
+    var e = efeitoTipo(d, Jd, hp);
+    var c = function (v) { return '<b class="' + (v > 0 ? 'pos' : v < 0 ? 'neg' : '') + '">' + (v > 0 ? '+' : '') + hFmt(v) + '</b>'; };
+    return { h: c(e.horas), b: d.saldo_modo === 'ZERO' ? '<span class="mut">não muda</span>' : c(e.banco), p: e.paga ? '<b class="pos">Sim</b>' : 'Não', ps: e.pas ? '<b class="pos">Sim</b>' : 'Não' };
+  };
+  var a = col(J.ss), s2 = col(J.sab);
+  el('tpPrev').innerHTML = '<div class="explica"><b>Simulação</b> num dia <b>sem batida</b>' + (inf ? ', informando <b>' + hFmt(hp) + '</b>' : '') + ' · ' + esc(descreverTipo({ sistema: 'PERSONALIZADO', horas_modo: d.horas_modo, saldo_modo: d.saldo_modo, paga_dia: d.paga_dia, passagem: d.passagem })) +
+    '<table class="tp-sim"><tr><th></th><th>Seg–sex (jornada ' + hFmt(J.ss) + ')</th><th>Sábado (jornada ' + hFmt(J.sab) + ')</th></tr>' +
+    '<tr><td>⏱ Horas do dia</td><td>' + a.h + '</td><td>' + s2.h + '</td></tr>' +
+    '<tr><td>🏦 Banco de horas</td><td>' + a.b + '</td><td>' + s2.b + '</td></tr>' +
+    '<tr><td>💰 Paga o dia</td><td>' + a.p + '</td><td>' + s2.p + '</td></tr>' +
+    '<tr><td>🚌 Passagem</td><td>' + a.ps + '</td><td>' + s2.ps + '</td></tr></table>' +
+    (d.paga_dia === 'NÃO' && d.passagem === 'SIM' ? '<p class="mut">Passagem só é paga quando o dia é pago.</p>' : '') +
+    '<div class="pills" style="margin-top:8px"><span class="mut">Como aparece no fechamento:</span> <span class="sug">' + esc(d.chip || d.rotulo || 'Novo ajuste') + '</span></div></div>';
 }
 function salvarTipo() {
   var d = lerFormTipo();
+  if (!d.rotulo.trim()) { msg('aMsg', 'Dê um nome ao tipo de ajuste.'); window.scrollTo(0, 0); return; }
   var at = S.tipoEdit ? tipoAjuste(S.tipoEdit) : null;
-  if (at && at.sistema !== 'PERSONALIZADO' && !confirm('Este é um tipo ' + (at.sistema === 'PADRAO' ? 'padrão' : 'estrutural') + '. Mudar as regras recalcula todos os meses em que ele já foi usado. Salvar mesmo assim?')) return;
-  carregando('Salvando...');
-  api('apiAdminSalvarTipoAjuste', S.token, d).then(function (r) {
-    carregando(); S.tipos = r.tipos; S.alertasCat = r.alertas; tiposPromessa = Promise.resolve(r);
-    montarAjustes(); pintarTipos(); el('tpForm').classList.add('hide'); fechDados = null;
-    msg('aMsg', 'Tipo de ajuste salvo.', true); window.scrollTo(0, 0);
-  }).catch(function (e) { carregando(); msg('aMsg', e.message); window.scrollTo(0, 0); });
+  var mudouRegra = at && ['horas_modo', 'saldo_modo', 'paga_dia', 'passagem'].some(function (k) { return at.sistema !== 'ESTRUTURAL' && (at[k] || '') !== (d[k] || ''); });
+  if (mudouRegra && at.sistema !== 'PERSONALIZADO' && !confirm('Este é um tipo ' + (at.sistema === 'PADRAO' ? 'padrão' : 'estrutural') + '. Mudar as regras recalcula todos os meses em que ele já foi usado. Salvar mesmo assim?')) return;
+  gravarTipo(d, 'Tipo de ajuste salvo.').then(function (r) {
+    // horas sugeridas: o servidor atual pode não guardar esse campo; guarda também neste aparelho
+    var cod = S.tipoEdit || ((r.tipos || []).filter(function (t) { return t.rotulo === d.rotulo; })[0] || {}).codigo;
+    if (cod) { try { var m = JSON.parse(ler('tpHorasPadrao') || '{}'); if (d.horas_padrao === '') delete m[cod]; else m[cod] = d.horas_padrao; guardar('tpHorasPadrao', JSON.stringify(m)); } catch (x) {} }
+    fecharTipo(); pintarTipos(); window.scrollTo(0, 0);
+  }).catch(function () {});
 }
 
 function carregarRecusadas() {
