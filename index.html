@@ -152,7 +152,6 @@
   header { padding-top:calc(6px + env(safe-area-inset-top)); padding-left:calc(12px + env(safe-area-inset-left)); padding-right:calc(12px + env(safe-area-inset-right)); }
   main { padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
   body.tela-login main { padding-top:calc(12px + env(safe-area-inset-top)); }
-  html { overscroll-behavior-y:none; }
   body { -webkit-user-select:none; user-select:none; }
   input, textarea, td, .termo { -webkit-user-select:text; user-select:text; }
   section:not(.hide) { animation:entra .28s cubic-bezier(.2,.8,.2,1); }
@@ -208,10 +207,16 @@
   #folha .btn.sec { border:0; }
   @keyframes sobe { from { transform:translateY(100%); } to { transform:none; } }
   @keyframes fundo { from { opacity:0; } }
+  /* Arrastar para atualizar */
+  #ptr { position:fixed; left:50%; top:0; z-index:40; width:44px; height:44px; margin-left:-22px; border-radius:50%; background:#fff; box-shadow:0 4px 14px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; transform:translateY(-60px); opacity:0; pointer-events:none; }
+  #ptr::before { content:''; width:22px; height:22px; border:3px solid var(--vinho-claro); border-top-color:var(--vinho); border-radius:50%; }
+  #ptr.pronto::before { border-color:var(--vinho); border-top-color:var(--vinho-claro); }
+  #ptr.gira::before { animation:gira .7s linear infinite; }
+  #ptr span { position:absolute; top:52px; white-space:nowrap; font-size:12px; font-weight:600; color:var(--vinho); background:#fff; padding:3px 10px; border-radius:999px; box-shadow:var(--sombra); }
 </style>
 </head>
 <body>
-<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
+<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bInstalar" class="hide" onclick="instalarApp()">📲 Instalar</button> <button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
 <main>
 
 <!-- LOGIN -->
@@ -511,7 +516,8 @@
   <div class="cam-status" id="camStatus">Abrindo a câmera...</div>
   <button class="btn sec hide" id="camNativa" style="max-width:360px">Usar a câmera do celular</button>
 </div>
-<div id="folha" class="hide" onclick="if (event.target === this) fecharFolha()">
+<div id="ptr"><span>Puxe para atualizar</span></div>
+<div id="folha" class="hide" onclick="if (event.target === this) el('folha').classList.add('hide')">
   <div class="caixa">
     <div class="topo"><img src="icons/icon-192.png" alt=""><div><h3>Instale o app do Ponto</h3><p>Fica na tela inicial, abre mais rápido e funciona como um aplicativo.</p></div></div>
     <div id="folhaCorpo"></div>
@@ -1629,7 +1635,7 @@ function ehIphone() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (n
 function ehAndroid() { return /android/i.test(navigator.userAgent); }
 /** Navegador embutido de WhatsApp, Instagram, Facebook etc.: não instala apps. */
 function navEmbutido() { return /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|LinkedInApp|TikTok|; wv\)/i.test(navigator.userAgent); }
-function mostrarInstalar(sim) { document.querySelectorAll('.instalar').forEach(function (b) { b.classList.toggle('hide', !sim); }); }
+function mostrarInstalar(sim) { document.querySelectorAll('.instalar, #bInstalar').forEach(function (b) { b.classList.toggle('hide', !sim); }); }
 
 function abrirFolha() {
   if (rodandoComoApp()) return;
@@ -1656,12 +1662,12 @@ function abrirFolha() {
 }
 function fecharFolha() {
   el('folha').classList.add('hide');
-  guardar('folhaAdiada', String(Date.now()));   // volta a sugerir em 2 dias
+  guardar('folhaAdiada', String(Date.now()));   // "Agora não": volta a sugerir em 12 horas
 }
 function deveSugerir() {
   if (rodandoComoApp()) return false;
   var t = Number(ler('folhaAdiada') || 0);
-  return Date.now() - t > 2 * 24 * 3600 * 1000;
+  return Date.now() - t > 12 * 3600 * 1000;
 }
 window.addEventListener('beforeinstallprompt', function (e) {
   e.preventDefault(); pedidoInstalar = e; mostrarInstalar(true);
@@ -1681,6 +1687,50 @@ function instalarApp() {
 if (!rodandoComoApp()) mostrarInstalar(true);
 // Sugere logo ao abrir (espera um instante para o Chrome liberar o botão de instalação direta).
 setTimeout(function () { if (deveSugerir()) abrirFolha(); }, 1800);
+
+// ---------- Arrastar para atualizar (no app instalado o celular não oferece esse gesto) ----------
+(function () {
+  var LIMITE = 70, y0 = null, puxado = 0, ptr = el('ptr');
+  function bloqueado(alvo) {
+    return !el('camModal').classList.contains('hide') || !el('load').classList.contains('hide') ||
+      !el('folha').classList.contains('hide') || (alvo && alvo.closest && alvo.closest('.scroll, input, select, textarea'));
+  }
+  function pintar(d) {
+    var p = Math.min(d, LIMITE * 1.6);
+    ptr.style.transform = 'translateY(' + (p - 50) + 'px) rotate(' + (p * 4) + 'deg)';
+    ptr.style.opacity = Math.min(1, p / LIMITE);
+    var pronto = d >= LIMITE;
+    ptr.classList.toggle('pronto', pronto);
+    ptr.querySelector('span').textContent = pronto ? 'Solte para atualizar' : 'Puxe para atualizar';
+  }
+  function soltar() {
+    ptr.style.transition = 'transform .2s, opacity .2s';
+    ptr.style.transform = 'translateY(-60px)'; ptr.style.opacity = 0;
+    setTimeout(function () { ptr.style.transition = ''; }, 220);
+  }
+  document.addEventListener('touchstart', function (e) {
+    // no navegador o próprio Chrome/Safari já atualiza ao puxar; o gesto daqui é só para o app instalado
+    y0 = (rodandoComoApp() && window.scrollY <= 0 && e.touches.length === 1 && !bloqueado(e.target)) ? e.touches[0].clientY : null;
+    puxado = 0;
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (y0 === null) return;
+    puxado = (e.touches[0].clientY - y0) * 0.6;
+    if (puxado <= 0 || window.scrollY > 0) { puxado = 0; return; }
+    pintar(puxado);
+  }, { passive: true });
+  document.addEventListener('touchend', function () {
+    if (y0 === null) return;
+    y0 = null;
+    if (puxado >= LIMITE) {
+      ptr.classList.add('gira'); ptr.querySelector('span').textContent = 'Atualizando...';
+      ptr.style.transform = 'translateY(14px)'; ptr.style.opacity = 1;
+      vibrar(15);
+      setTimeout(function () { location.reload(); }, 250);
+    } else if (puxado > 0) soltar();
+    puxado = 0;
+  });
+})();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
