@@ -13,3 +13,4 @@ jobs:
       - run: node apps-script/tests/teste-calculo.js
       - run: node apps-script/tests/teste-contatos.js
       - run: node apps-script/tests/teste-multicliente.js
+      - run: node apps-script/tests/teste-instalador.js

@@ -29,6 +29,7 @@ jobs:
           node apps-script/tests/teste-calculo.js
           node apps-script/tests/teste-contatos.js
           node apps-script/tests/teste-multicliente.js
+          node apps-script/tests/teste-instalador.js
       - name: Conferir segredos
         id: seg
         env:
