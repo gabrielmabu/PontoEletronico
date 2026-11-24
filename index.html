@@ -594,7 +594,7 @@
   <div class="card at hide" id="at-escala">
     <div class="topo-filtro"><h2>Escala 5x2 · fim da 6x1</h2>
       <div class="filtro"><button class="btn sec peq" onclick="baixarEscalaCsv()">⤓ Planilha (CSV)</button><button class="btn sec peq" onclick="window.print()">⎙ Imprimir</button></div></div>
-    <div class="explica">A <b>Emenda Constitucional 141/2026</b> acaba com a escala 6x1. A partir de <b>15/12/2026</b>: no máximo <b>42 h por semana</b> e <b>2 folgas</b> semanais (de preferência no domingo). A partir de <b>16/12/2027</b>: <b>40 h</b>, até 8 h por dia, em 5 dias.</div>
+    <div class="explica" id="escExplica"></div>
     <div id="escDiag"><p class="mut">Analisando as batidas reais dos últimos meses...</p></div>
     <details class="legenda" id="escFerias" open><summary>🏖 Férias (calendário e regras da CLT)</summary>
       <div class="linha" style="align-items:flex-end;flex-wrap:wrap">
@@ -616,7 +616,7 @@
       <div class="scroll"><table id="escDias"></table></div>
       <label>Equipe e função de cada pessoa</label><div id="escPessoas" class="esc-pessoas"></div>
       <label>Mínimo de cada função na loja, por dia aberto</label><div id="escFuncMin" class="chk"></div>
-      <div class="linha"><div><label>Limite semanal</label><select id="escLimite"><option value="42">42 h (de 15/12/2026 a 15/12/2027)</option><option value="40">40 h (a partir de 16/12/2027)</option></select></div>
+      <div class="linha"><div><label>Limite semanal</label><select id="escLimite"></select></div>
         <div><label>Começar na semana de</label><input type="date" id="escInicio" value="2026-12-14"></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
@@ -2029,6 +2029,32 @@ function salvarLoja() {
     .catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
 
+// ---------- Regras trabalhistas (regras/trabalhistas.json; esta cópia só vale se o arquivo não carregar) ----------
+var TRAB = {
+  jornada: { fases: [
+    { de: '2026-12-15', horas_semana: 42, folgas_semana: 2, max_dias_semana: 5, fonte: 'Emenda Constitucional 141/2026' },
+    { de: '2027-12-16', horas_semana: 40, folgas_semana: 2, max_dias_semana: 5, max_horas_dia: 8, fonte: 'Emenda Constitucional 141/2026' } ] },
+  ferias: { max_periodos: 3, periodo_min_dias: 5, um_periodo_min_dias: 14, max_dias_ano: 30, dias_proibidos_antes_descanso: 2 }
+};
+function dataBR(iso) { var p = String(iso).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+/** Fase que o diagnóstico usa: a próxima que ainda vai começar; se todas já começaram, a última. */
+function faseAlvo() { var f = TRAB.jornada.fases, h = hojeIso(); return f.filter(function (x) { return x.de >= h; })[0] || f[f.length - 1]; }
+function pintarExplicaEscala() {
+  var f = TRAB.jornada.fases, ex = el('escExplica'), lim = el('escLimite');
+  if (ex) ex.innerHTML = 'Regras vigentes (<b>' + esc(f[0].fonte || 'norma') + '</b>), lidas de <i>regras/trabalhistas.json</i>' + (TRAB.atualizado_em ? ' · atualizado em ' + dataBR(TRAB.atualizado_em) : '') + '. ' +
+    f.map(function (x) { return 'A partir de <b>' + dataBR(x.de) + '</b>: no máximo <b>' + x.horas_semana + ' h por semana</b>, <b>' + x.folgas_semana + ' folgas</b> semanais' + (x.max_horas_dia ? ', até ' + x.max_horas_dia + ' h por dia' : '') + ', em até ' + x.max_dias_semana + ' dias.'; }).join(' ');
+  if (lim) {
+    var atual = lim.value;
+    lim.innerHTML = f.map(function (x, i) { return '<option value="' + x.horas_semana + '">' + x.horas_semana + ' h (' + (i < f.length - 1 ? 'de ' + dataBR(x.de) + ' a ' + dataBR(isoMais(f[i + 1].de, -1)) : 'a partir de ' + dataBR(x.de)) + ')</option>'; }).join('');
+    if (atual && Array.prototype.some.call(lim.options, function (o) { return o.value === atual; })) lim.value = atual;
+  }
+}
+function carregarTrab() {
+  fetch('regras/trabalhistas.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (j) {
+    if (j && j.jornada && j.jornada.fases && j.jornada.fases.length && j.ferias) { TRAB = j; pintarExplicaEscala(); if (ESC.real) pintarDiagnostico(); }
+  }).catch(function () {});
+}
+
 // ---------- Escala 5x2 (fim da 6x1 · EC 141/2026) ----------
 var ESC = { real: null, ultima: null };
 var DIAS_SEM = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -2041,6 +2067,7 @@ function mediana(a) { if (!a.length) return null; a = a.slice().sort(function (x
 function mesMenos(m, n) { var d = new Date(m + '-15T12:00:00'); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 7); }
 
 function carregarEscala() {
+  pintarExplicaEscala(); carregarTrab();
   if (!S.regras) api('apiAdminRegras', S.token).then(function (r) { S.regras = r; if (ESC.real) pintarFerias(); }).catch(function () {});
   if (ESC.real) return;
   var m = mesAtual();
@@ -2104,19 +2131,19 @@ function analisarReal(resps) {
 function pintarDiagnostico() {
   var r = ESC.real, ps = r.pessoas;
   if (!ps.length) { el('escDiag').innerHTML = '<p class="mut">Sem batidas suficientes nos últimos 2 meses para o diagnóstico. Preencha o funcionamento abaixo.</p>'; return; }
-  var irreg = ps.filter(function (p) { return p.diasMax > 5 || p.minMax > 42 * 60; });
+  var alvo = faseAlvo(), irreg = ps.filter(function (p) { return p.diasMax > alvo.max_dias_semana || p.minMax > alvo.horas_semana * 60; });
   var diasMed = ps.reduce(function (a, p) { return a + p.diasMed; }, 0) / ps.length;
   var hMed = ps.reduce(function (a, p) { return a + p.minMed; }, 0) / ps.length;
   var cor = irreg.length ? 'var(--err)' : 'var(--ok)';
   el('escDiag').innerHTML =
     '<div class="kpis">' +
-      '<div class="kpi"><b style="color:' + cor + '">' + irreg.length + ' de ' + ps.length + '</b><span>fora da nova regra a partir de 15/12</span></div>' +
+      '<div class="kpi"><b style="color:' + cor + '">' + irreg.length + ' de ' + ps.length + '</b><span>fora da nova regra a partir de ' + dataBR(alvo.de).slice(0, 5) + '</span></div>' +
       '<div class="kpi"><b>' + diasMed.toFixed(1).replace('.', ',') + '</b><span>dias trabalhados por semana (média)</span></div>' +
       '<div class="kpi"><b>' + hNum(hMed) + ' h</b><span>por semana por pessoa (média)</span></div>' +
       '<div class="kpi"><b>' + r.semanas.length + '</b><span>semanas analisadas</span></div></div>' +
-    '<details class="legenda"><summary>Ver por colaborador(a)</summary><div class="scroll"><table><tr><th>Colaborador(a)</th><th>Dias/semana</th><th>Horas/semana (média)</th><th>Pior semana</th><th>Situação em 15/12</th></tr>' +
+    '<details class="legenda"><summary>Ver por colaborador(a)</summary><div class="scroll"><table><tr><th>Colaborador(a)</th><th>Dias/semana</th><th>Horas/semana (média)</th><th>Pior semana</th><th>Situação em ' + dataBR(alvo.de).slice(0, 5) + '</th></tr>' +
     ps.map(function (p) {
-      var m = []; if (p.diasMax > 5) m.push(p.diasMax + ' dias (máx. 5)'); if (p.minMax > 42 * 60) m.push(hNum(p.minMax) + ' h (máx. 42)');
+      var m = []; if (p.diasMax > alvo.max_dias_semana) m.push(p.diasMax + ' dias (máx. ' + alvo.max_dias_semana + ')'); if (p.minMax > alvo.horas_semana * 60) m.push(hNum(p.minMax) + ' h (máx. ' + alvo.horas_semana + ')');
       return '<tr><td>' + esc(p.nome) + '</td><td>' + p.diasMed.toFixed(1).replace('.', ',') + '</td><td>' + hNum(p.minMed) + ' h</td><td>' + hNum(p.minMax) + ' h · ' + p.diasMax + ' dias</td><td>' +
         (m.length ? '<span class="semaforo" style="background:var(--err)"></span><span class="neg">' + m.join(' · ') + '</span>' : '<span class="semaforo" style="background:var(--ok)"></span>Ok') + '</td></tr>';
     }).join('') + '</table></div></details>';
@@ -2211,11 +2238,12 @@ function avisosFerias(f, lista) {
   var av = [], dias = Math.round((new Date(f.fim) - new Date(f.ini)) / 864e5) + 1, fer = feriadosMapa();
   var doAno = lista.filter(function (x) { return x.pid === f.pid && x.ini.slice(0, 4) === f.ini.slice(0, 4); });
   var total = doAno.reduce(function (a, x) { return a + Math.round((new Date(x.fim) - new Date(x.ini)) / 864e5) + 1; }, 0);
-  if (dias < 5) av.push('período com menos de 5 dias (mínimo da CLT)');
-  if (doAno.length > 3) av.push('mais de 3 períodos no ano');
-  if (total > 30) av.push('soma ' + total + ' dias no ano (máx. 30)');
-  if (doAno.length > 1 && !doAno.some(function (x) { return Math.round((new Date(x.fim) - new Date(x.ini)) / 864e5) + 1 >= 14; })) av.push('dividido sem nenhum período de 14 dias ou mais');
-  [1, 2].forEach(function (k) {
+  var FR = TRAB.ferias;
+  if (dias < FR.periodo_min_dias) av.push('período com menos de ' + FR.periodo_min_dias + ' dias (mínimo da CLT)');
+  if (doAno.length > FR.max_periodos) av.push('mais de ' + FR.max_periodos + ' períodos no ano');
+  if (total > FR.max_dias_ano) av.push('soma ' + total + ' dias no ano (máx. ' + FR.max_dias_ano + ')');
+  if (doAno.length > 1 && !doAno.some(function (x) { return Math.round((new Date(x.fim) - new Date(x.ini)) / 864e5) + 1 >= FR.um_periodo_min_dias; })) av.push('dividido sem nenhum período de ' + FR.um_periodo_min_dias + ' dias ou mais');
+  Array.apply(null, Array(FR.dias_proibidos_antes_descanso)).map(function (_, i) { return i + 1; }).forEach(function (k) {
     var dd = isoMais(f.ini, k), dow = new Date(dd + 'T12:00:00').getDay();
     if (dow === 0) av.push('começa a ' + k + ' dia(s) do domingo (CLT proíbe início nos 2 dias antes do descanso)');
     if (fer[dd]) av.push('começa a ' + k + ' dia(s) do feriado ' + fer[dd]);

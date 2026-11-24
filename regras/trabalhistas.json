@@ -1,0 +1,19 @@
+{
+  "versao": 1,
+  "atualizado_em": "2026-11-24",
+  "nota": "Regras que o app usa na aba Escala 5x2. Para mudar uma regra, edite aqui (não precisa mexer no app). O vigia semanal (.github/workflows/vigia-regras.yml) abre um aviso quando sai norma nova; a alteração só entra depois de revisão humana.",
+  "jornada": {
+    "fases": [
+      { "de": "2026-12-15", "horas_semana": 42, "folgas_semana": 2, "max_dias_semana": 5, "fonte": "Emenda Constitucional 141/2026" },
+      { "de": "2027-12-16", "horas_semana": 40, "folgas_semana": 2, "max_dias_semana": 5, "max_horas_dia": 8, "fonte": "Emenda Constitucional 141/2026" }
+    ]
+  },
+  "ferias": {
+    "max_periodos": 3,
+    "periodo_min_dias": 5,
+    "um_periodo_min_dias": 14,
+    "max_dias_ano": 30,
+    "dias_proibidos_antes_descanso": 2,
+    "fonte": "CLT art. 134"
+  }
+}
