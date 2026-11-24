@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="apple-touch-icon" href="logo.jpg"><link rel="icon" href="logo.jpg">
-<base target="_top">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="apple-touch-icon" href="icons/apple-180.png"><link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#70122D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ponto">
+<title>Ponto · Luciana Noivas</title>
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -139,6 +147,55 @@
   .fech .tot td { font-weight:700; border-top:2px solid var(--vinho); background:var(--vinho-claro); }
   .lk { color:var(--vinho); cursor:pointer; text-decoration:underline; font-size:12px; }
   @media (max-width:420px) { .relogio { font-size:52px; } header .marca span { display:none; } h2 { font-size:22px; } }
+
+  /* ---- Cara de app (beta) ---- */
+  header { padding-top:calc(6px + env(safe-area-inset-top)); padding-left:calc(12px + env(safe-area-inset-left)); padding-right:calc(12px + env(safe-area-inset-right)); }
+  main { padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+  body.tela-login main { padding-top:calc(12px + env(safe-area-inset-top)); }
+  html { overscroll-behavior-y:none; }
+  body { -webkit-user-select:none; user-select:none; }
+  input, textarea, td, .termo { -webkit-user-select:text; user-select:text; }
+  section:not(.hide) { animation:entra .28s cubic-bezier(.2,.8,.2,1); }
+  @keyframes entra { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .btn { touch-action:manipulation; }
+  .btn:active { transform:scale(.97); }
+  .grande { display:flex; align-items:center; justify-content:center; gap:10px; }
+  .grande svg { width:26px; height:26px; }
+
+  /* Splash */
+  #splash { position:fixed; inset:0; z-index:30; background:var(--vinho); display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity .35s; }
+  #splash img { width:min(260px, 70vw); animation:pulsa 1.6s ease-in-out infinite; }
+  #splash.sai { opacity:0; pointer-events:none; }
+  @keyframes pulsa { 50% { opacity:.65; transform:scale(.98); } }
+
+  /* Instalar */
+  .instalar { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.35); border-radius:14px; padding:10px 14px; margin-top:14px; font-size:13.5px; cursor:pointer; max-width:400px; width:100%; }
+  .instalar b { display:block; font-size:14.5px; }
+  #ponto .instalar { background:var(--vinho-claro); color:var(--vinho); border-color:#E7D3DA; max-width:none; }
+
+  /* Comprovante tipo recibo */
+  .comprovante { position:relative; text-align:center; border:0; border-left:0; background:#fff; box-shadow:var(--sombra); padding:22px 18px 18px; animation:entra .35s cubic-bezier(.2,.8,.2,1); }
+  .comprovante::after { content:''; position:absolute; left:0; right:0; bottom:-8px; height:8px; background:radial-gradient(circle at 6px 0, transparent 6px, #fff 6.5px) repeat-x; background-size:12px 8px; }
+  .comprovante .ck { width:56px; height:56px; margin:0 auto 8px; }
+  .comprovante .ck circle { fill:var(--ok-bg); }
+  .comprovante .ck path { fill:none; stroke:var(--ok); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:risca .5s .15s ease forwards; }
+  @keyframes risca { to { stroke-dashoffset:0; } }
+  .comprovante .hora { font:600 40px var(--serif); color:var(--vinho); line-height:1; margin:4px 0 6px; }
+  .comprovante .lin { color:var(--mut); font-size:13.5px; }
+
+  /* Câmera: anel de progresso, indicadores e "flash de tela" */
+  .cam-modal { padding-top:calc(12px + env(safe-area-inset-top)); transition:background .3s, color .3s; }
+  #camProg { transition:stroke-dasharray .25s ease; }
+  .cam-ind { display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .cam-ind span { font-size:12.5px; padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25); opacity:.6; transition:all .2s; }
+  .cam-ind span.ok { opacity:1; background:rgba(74,222,128,.18); border-color:#4ADE80; }
+  .cam-ind span.ruim { opacity:1; background:rgba(251,191,36,.18); border-color:#FBBF24; }
+  .cam-modal.claro { background:#FFFFFF; color:var(--vinho); }
+  .cam-modal.claro .cam-topo button { color:var(--vinho); border-color:var(--vinho); }
+  .cam-modal.claro .cam-ind span { background:var(--vinho-claro); border-color:#E7D3DA; }
+  .cam-modal.claro .cam-ind span.ok { background:var(--ok-bg); border-color:var(--ok); }
+  .seta { display:inline-block; animation:balanca 1s ease-in-out infinite; }
+  @keyframes balanca { 50% { transform:translateX(6px); } }
 </style>
 </head>
 <body>
@@ -159,6 +216,7 @@
     <div id="lMsg" class="msg"></div>
   </div>
   <div class="rodape">Primeiro acesso? Use a senha padrão informada pela gerência.</div>
+  <div class="instalar hide" onclick="instalarApp()"><span style="font-size:22px">📲</span><div><b>Instalar o app</b>Fica na tela inicial e abre mais rápido</div></div>
 </section>
 
 <!-- TROCA DE SENHA -->
@@ -192,7 +250,7 @@
 <section id="rosto" class="hide">
   <div class="card">
     <h2>Cadastro do rosto</h2>
-    <p class="mut">Tire 3 selfies em lugar claro, sozinho(a) na foto, olhando para a câmera.</p>
+    <p class="mut">São 3 fotos rápidas, em lugar claro e sozinho(a): <b>1</b> de frente, <b>2</b> virando o rosto levemente para um lado e <b>3</b> para o outro lado. A câmera tira sozinha quando estiver certo. Fotos em ângulos diferentes deixam o reconhecimento mais seguro no dia a dia.</p>
     <div class="fotos"><div id="f0">1</div><div id="f1">2</div><div id="f2">3</div></div>
     <button class="btn" id="bFoto" onclick="tirarFotoCadastro()">Tirar foto 1</button>
     <button class="btn hide" id="bSalvarRosto" onclick="salvarRosto()">Salvar cadastro</button>
@@ -211,10 +269,11 @@
   <div class="card">
     <div id="pBatidas" class="chips"></div>
     <div id="pEscolha"></div>
-    <button class="btn grande" id="bBater" onclick="bater()">Bater ponto</button>
+    <button class="btn grande" id="bBater" onclick="bater()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="9" cy="10" r=".6" fill="currentColor"/><circle cx="15" cy="10" r=".6" fill="currentColor"/><path d="M9 15c1.6 1.3 4.4 1.3 6 0"/></svg><span>Bater ponto</span></button>
     <div id="pMsg" class="msg"></div>
     <div id="pComprovante" class="hide" style="margin-top:14px"></div>
   </div>
+  <div class="instalar hide" onclick="instalarApp()"><span style="font-size:22px">📲</span><div><b>Instalar o app</b>Bata o ponto direto pela tela inicial</div></div>
 </section>
 
 <!-- HISTÓRICO -->
@@ -432,12 +491,15 @@
       <defs><mask id="furo"><rect width="300" height="400" fill="#fff"/><ellipse cx="150" cy="190" rx="100" ry="140" fill="#000"/></mask></defs>
       <rect width="300" height="400" fill="rgba(20,4,10,.55)" mask="url(#furo)"/>
       <ellipse id="camOval" cx="150" cy="190" rx="100" ry="140" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="10 8"/>
+      <ellipse id="camProg" cx="150" cy="190" rx="100" ry="140" fill="none" stroke="#4ADE80" stroke-width="7" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 150 190)"/>
     </svg>
   </div>
+  <div class="cam-ind" id="camInd"><span id="iLuz">☀ Luz</span><span id="iPos">◎ Posição</span><span id="iVida" class="hide">↔ Movimento</span><span id="iFoco">✦ Foco</span></div>
   <div class="cam-aviso" id="camAviso">Encaixe o rosto na moldura</div>
   <div class="cam-status" id="camStatus">Abrindo a câmera...</div>
   <button class="btn sec hide" id="camNativa" style="max-width:360px">Usar a câmera do celular</button>
 </div>
+<div id="splash"><img src="logo.jpg" alt=""></div>
 <div id="load" class="carregando hide"><div id="loadTxt">Carregando...</div></div>
 
 <script>
@@ -521,6 +583,7 @@ function entrar() {
   guardar('ultimoLogin', el('lLogin').value);
   api('apiLogin', el('lLogin').value, el('lSenha').value, el('lLembrar').checked).then(function (r) {
     S.token = r.token; S.usuario = r.usuario; guardar('tk', r.token);
+    if (r.usuario && r.usuario.login !== 'admin') carregarFace().catch(function () {});
     el('lSenha').value = '';
     carregando(); rotear();
   }).catch(function (e) { carregando(); msg('lMsg', e.message); });
@@ -561,8 +624,19 @@ function carregarFace() {
       faceapi.nets.faceLandmark68Net.loadFromUri(MODELOS),
       faceapi.nets.faceRecognitionNet.loadFromUri(MODELOS)
     ]);
-  }).catch(function (e) { faceCarregado = null; throw e; });
+  }).then(aquecerFace).catch(function (e) { faceCarregado = null; throw e; });
   return faceCarregado;
+}
+
+/** Roda os modelos uma vez numa imagem vazia: a 1ª análise (a mais lenta) acontece antes do clique. */
+function aquecerFace() {
+  var c = document.createElement('canvas'); c.width = c.height = 160;
+  var passo = function (f) { return function () { return Promise.resolve().then(f).catch(function () {}); }; };
+  return Promise.resolve()
+    .then(passo(function () { return faceapi.detectAllFaces(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })); }))
+    .then(passo(function () { return faceapi.detectAllFaces(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 })); }))
+    .then(passo(function () { return faceapi.detectFaceLandmarks(c); }))
+    .then(passo(function () { return faceapi.computeFaceDescriptor(c); }));
 }
 
 /** Abre a câmera frontal e devolve um canvas (máx. 640 px). Precisa ser chamada dentro do clique. */
@@ -589,9 +663,9 @@ function capturarFoto() {
   });
 }
 
-function descritorDe(canvas) {
+function descritorDe(canvas, tam) {
   return carregarFace().then(function () {
-    return faceapi.detectAllFaces(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+    return faceapi.detectAllFaces(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: tam || 416, scoreThreshold: 0.5 }))
       .withFaceLandmarks().withFaceDescriptors();
   }).then(function (r) {
     if (!r.length) throw new Error('Nenhum rosto encontrado. Tire a foto de frente, em lugar claro.');
@@ -613,28 +687,74 @@ var CAM = null;
 
 function cancelarCam() { if (CAM) CAM.fim(null, Object.assign(new Error('Cancelado.'), { cancelado: true })); }
 
+// Prova de vida na batida: pede um leve giro de cabeça. Foto impressa ou tela inclinada
+// não muda a posição do nariz entre os olhos; um rosto de verdade (3D) muda.
+// Para desligar neste aparelho: localStorage provaVida = 'nao'.
+function provaVidaAtiva() { return ler('provaVida') !== 'nao'; }
+
+var _mc = document.createElement('canvas'); _mc.width = _mc.height = 48;
+var _mx = _mc.getContext('2d', { willReadFrequently: true });
+/** Brilho médio (0-255) e nitidez (variância do Laplaciano) de uma região da imagem. */
+function medirRegiao(src, x, y, w, h) {
+  _mx.drawImage(src, Math.max(0, x), Math.max(0, y), Math.max(1, w), Math.max(1, h), 0, 0, 48, 48);
+  var d = _mx.getImageData(0, 0, 48, 48).data, g = new Float32Array(2304), soma = 0, i;
+  for (i = 0; i < 2304; i++) { g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; soma += g[i]; }
+  var m = 0, m2 = 0, n = 0;
+  for (var yy = 1; yy < 47; yy++) for (var xx = 1; xx < 47; xx++) {
+    var c = yy * 48 + xx, L = 4 * g[c] - g[c - 1] - g[c + 1] - g[c - 48] - g[c + 48];
+    m += L; m2 += L * L; n++;
+  }
+  return { luz: soma / 2304, foco: m2 / n - (m / n) * (m / n) };
+}
+/** Giro da cabeça (yaw) pelos pontos do rosto: 0 = de frente, ±0,1 ≈ 15°. */
+function anguloDe(lm) {
+  var p = lm.positions, e = p[36], d = p[45], n = p[30];
+  return (n.x - e.x) / ((d.x - e.x) || 1) - 0.5;
+}
+function vibrar(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (x) {} }
+function mediaDescritores(lista) {
+  var r = new Array(128).fill(0);
+  lista.forEach(function (d) { for (var i = 0; i < 128; i++) r[i] += d[i] / lista.length; });
+  return r;
+}
+
 /**
- * Abre a câmera frontal dentro do app com moldura oval. Quando o rosto fica
- * encaixado, captura sozinho. Se a câmera ao vivo não abrir (iframe/permissão),
- * oferece a câmera nativa do celular.
- * Resolve { canvas, descritor }.
+ * Abre a câmera frontal dentro do app com moldura oval e captura sozinho quando
+ * luz, posição, ângulo (e movimento, na prova de vida) estão certos.
+ * Junta várias amostras e devolve o descritor MÉDIO (menos recusas falsas) e a foto mais nítida.
+ * opts: { pose: 'frente' | 'lado', sinal: 1|-1 (lado exigido), vida: bool, amostras: n }
+ * Se a câmera ao vivo não abrir (iframe/permissão), oferece a câmera nativa do celular.
+ * Resolve { canvas, descritor, angulo }.
  */
-function obterRosto(titulo) {
+function obterRosto(titulo, opts) {
+  opts = opts || {};
+  var pose = opts.pose || 'frente', AMOSTRAS = opts.amostras || 3;
+  var FRENTE = 0.05, LADO_MIN = 0.075, LADO_MAX = 0.26;
   return new Promise(function (ok, erro) {
     var modal = el('camModal'), video = el('camVideo');
-    var stream = null, timer = null, acertos = 0, terminou = false, inicio = Date.now();
+    var stream = null, timer = null, terminou = false, inicio = Date.now(), track = null, expAjustada = false;
+    // Fases: vida → 'centro' → 'virar' → 'voltar' → 'coleta'; sem vida → 'coleta'
+    var fase = opts.vida ? 'centro' : 'coleta', amostras = [], escuroSeguidos = 0;
+    var passos = opts.vida ? 3 : 0, passoAtual = 0;
     el('camTit').textContent = titulo || 'Validar rosto';
     el('camAviso').textContent = 'Encaixe o rosto na moldura';
     el('camStatus').textContent = 'Abrindo a câmera...';
     el('camNativa').classList.add('hide');
-    modal.classList.remove('alinhado'); modal.classList.remove('hide');
+    el('iVida').classList.toggle('hide', !opts.vida);
+    ['iLuz', 'iPos', 'iVida', 'iFoco'].forEach(function (i) { el(i).className = el(i).className.replace(/\b(ok|ruim)\b/g, '').trim(); });
+    progresso(0);
+    modal.classList.remove('alinhado'); modal.classList.remove('claro'); modal.classList.remove('hide');
+
+    function progresso(p) { el('camProg').setAttribute('stroke-dasharray', Math.round(p * 100) + ' 100'); }
+    function ind(id, estado) { var e = el(id); e.classList.toggle('ok', estado === 'ok'); e.classList.toggle('ruim', estado === 'ruim'); }
+    function avancar() { passoAtual++; vibrar(25); progresso(passoAtual / (passos + 1)); }
 
     CAM = {
       fim: function (res, e) {
         if (terminou) return;
         terminou = true; clearTimeout(timer); clearTimeout(vigia);
         if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
-        video.srcObject = null; modal.classList.add('hide'); CAM = null;
+        video.srcObject = null; modal.classList.add('hide'); modal.classList.remove('claro'); CAM = null;
         e ? erro(e) : ok(res);
       }
     };
@@ -642,7 +762,7 @@ function obterRosto(titulo) {
     el('camNativa').onclick = function () {   // clique do usuário: pode abrir o seletor de arquivo
       capturarFoto().then(function (c) {
         el('camStatus').textContent = 'Analisando...';
-        return descritorDe(c).then(function (d) { CAM && CAM.fim({ canvas: c, descritor: d }); });
+        return descritorDe(c).then(function (d) { CAM && CAM.fim({ canvas: c, descritor: d, angulo: 0 }); });
       }).catch(function (e) { el('camStatus').textContent = e.message; });
     };
     var mostrarNativa = function (txt) { el('camStatus').textContent = txt; el('camNativa').classList.remove('hide'); };
@@ -669,8 +789,9 @@ function obterRosto(titulo) {
       if (terminou) { r[0].getTracks().forEach(function (t) { t.stop(); }); return; }
       stream = r[0]; video.srcObject = stream;
       try {   // sem zoom digital, se o aparelho oferecer
-        var tr = stream.getVideoTracks()[0], cp = tr.getCapabilities ? tr.getCapabilities() : {};
-        if (cp.zoom && cp.zoom.min !== undefined) tr.applyConstraints({ advanced: [{ zoom: cp.zoom.min }] }).catch(function () {});
+        track = stream.getVideoTracks()[0];
+        var cp = track.getCapabilities ? track.getCapabilities() : {};
+        if (cp.zoom && cp.zoom.min !== undefined) track.applyConstraints({ advanced: [{ zoom: cp.zoom.min }] }).catch(function () {});
       } catch (x) {}
       return video.play().then(function () {
         el('camStatus').textContent = '';
@@ -685,55 +806,132 @@ function obterRosto(titulo) {
         : 'Não foi possível abrir a câmera aqui. Use a câmera do celular.');
     });
 
-    // Recorte visível (object-fit: cover em 3:4)
-    function recorte() { return { x: 0, y: 0, w: video.videoWidth, h: video.videoHeight }; }
+    /** Pouca luz: clareia a tela (funciona como flash frontal) e pede mais exposição à câmera. */
+    function compensarEscuro(escuro) {
+      escuroSeguidos = escuro ? escuroSeguidos + 1 : 0;
+      if (escuroSeguidos >= 3) modal.classList.add('claro');
+      if (escuro && !expAjustada && track) {
+        expAjustada = true;
+        try {
+          var cp = track.getCapabilities ? track.getCapabilities() : {};
+          if (cp.exposureCompensation) track.applyConstraints({ advanced: [{ exposureCompensation: cp.exposureCompensation.max }] }).catch(function () {});
+        } catch (x) {}
+      }
+    }
 
     function laco() {
       if (terminou) return;
-      if (!video.videoWidth) { timer = setTimeout(laco, 200); return; }
-      faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })).then(function (faces) {
+      if (!video.videoWidth) { timer = setTimeout(laco, 150); return; }
+      faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })).withFaceLandmarks().then(function (faces) {
         if (terminou) return;
-        var rc = recorte(), aviso = 'Encaixe o rosto na moldura', alinhado = false;
-        if (faces.length > 1) aviso = 'Só uma pessoa na câmera, por favor';
+        var vw = video.videoWidth, vh = video.videoHeight, aviso = 'Encaixe o rosto na moldura', alinhado = false;
+        if (faces.length > 1) { aviso = 'Só uma pessoa na câmera, por favor'; ind('iPos', 'ruim'); }
         else if (faces.length === 1) {
-          var b = faces[0].box;
-          var cx = (b.x + b.width / 2 - rc.x) / rc.w, cy = (b.y + b.height / 2 - rc.y) / rc.h, lw = b.width / rc.w;
-          if (lw < 0.28) aviso = 'Aproxime o rosto';
-          else if (lw > 0.7) aviso = 'Afaste um pouco o celular';
-          else if (Math.abs(cx - 0.5) > 0.12 || Math.abs(cy - 0.47) > 0.13) aviso = 'Centralize o rosto na moldura';
-          else { aviso = 'Perfeito, segure firme...'; alinhado = true; }
+          var b = faces[0].detection.box, ang = anguloDe(faces[0].landmarks);
+          var cx = (b.x + b.width / 2) / vw, cy = (b.y + b.height / 2) / vh, lw = b.width / vw;
+          // Luz: no rosto e no quadro todo (contra-luz = rosto bem mais escuro que o fundo)
+          var rosto = medirRegiao(video, b.x, b.y, b.width, b.height), geral = medirRegiao(video, 0, 0, vw, vh).luz;
+          var luzOk = false;
+          if (rosto.luz < 70) aviso = 'Pouca luz no rosto: procure um lugar mais claro';
+          else if (geral - rosto.luz > 55 && rosto.luz < 110) aviso = 'Tem luz atrás de você: vire-se para a claridade';
+          else if (rosto.luz > 228) aviso = 'Luz forte demais no rosto';
+          else luzOk = true;
+          compensarEscuro(rosto.luz < 70);
+          ind('iLuz', luzOk ? 'ok' : 'ruim');
+
+          var posOk = false;
+          if (lw < 0.26) aviso = luzOk ? 'Aproxime o rosto' : aviso;
+          else if (lw > 0.72) aviso = luzOk ? 'Afaste um pouco o celular' : aviso;
+          else if (Math.abs(cx - 0.5) > 0.14 || Math.abs(cy - 0.47) > 0.15) aviso = luzOk ? 'Centralize o rosto na moldura' : aviso;
+          else posOk = true;
+          ind('iPos', posOk ? 'ok' : 'ruim');
+
+          if (luzOk && posOk) {
+            var frente = Math.abs(ang) < FRENTE, deLado = Math.abs(ang) >= LADO_MIN && Math.abs(ang) <= LADO_MAX;
+            if (fase === 'centro') {
+              if (frente) { fase = 'virar'; avancar(); }
+              aviso = 'Olhe de frente para a câmera';
+            } else if (fase === 'virar') {
+              aviso = 'Agora vire o rosto devagar para o lado <span class="seta">→</span>';
+              if (Math.abs(ang) >= LADO_MIN) { fase = 'voltar'; avancar(); ind('iVida', 'ok'); }
+            } else if (fase === 'voltar') {
+              aviso = 'Isso! Volte a olhar de frente';
+              if (frente) { fase = 'coleta'; avancar(); }
+            } else if (fase === 'coleta') {
+              var poseOk = pose === 'frente' ? frente
+                : (deLado && (!opts.sinal || Math.sign(ang) === opts.sinal));
+              if (!poseOk) {
+                if (pose === 'frente') aviso = 'Olhe de frente para a câmera';
+                else if (opts.sinal && deLado) aviso = 'Agora vire para o <b>outro</b> lado <span class="seta">→</span>';
+                else if (Math.abs(ang) > LADO_MAX) aviso = 'Um pouco menos: vire só levemente';
+                else aviso = (opts.sinal ? 'Vire levemente para o <b>outro</b> lado' : 'Vire o rosto levemente para um lado') + ' <span class="seta">→</span>';
+                amostras = [];
+              } else {
+                alinhado = true; aviso = 'Perfeito, segure firme...';
+                amostras.push({ canvas: quadro(), foco: rosto.foco, angulo: ang });
+                ind('iFoco', 'ok');
+                progresso((passoAtual + amostras.length / AMOSTRAS) / (passos + 1));
+                if (amostras.length >= AMOSTRAS) { el('camAviso').innerHTML = 'Validando...'; modal.classList.add('alinhado'); return finalizar(); }
+              }
+            }
+          }
+        } else {   // nenhum rosto: pode ser escuridão (o detector não enxerga no escuro)
+          ind('iPos', '');
+          var luzGeral = medirRegiao(video, 0, 0, vw, vh).luz;
+          if (luzGeral < 45) { aviso = 'Ambiente muito escuro: procure um lugar mais claro'; ind('iLuz', 'ruim'); }
+          compensarEscuro(luzGeral < 45);
         }
-        el('camAviso').textContent = aviso;
+        if (!alinhado && fase === 'coleta' && amostras.length) amostras = [];
+        el('camAviso').innerHTML = aviso;
         modal.classList.toggle('alinhado', alinhado);
-        acertos = alinhado ? acertos + 1 : 0;
         if (Date.now() - inicio > 30000 && el('camNativa').classList.contains('hide')) {
           mostrarNativa('Está difícil? Procure um lugar com mais luz ou use a câmera do celular.');
         }
-        if (acertos >= 2) return capturar(rc);
-        timer = setTimeout(laco, 250);
-      }).catch(function () { timer = setTimeout(laco, 500); });
+        timer = setTimeout(laco, 90);
+      }).catch(function () { timer = setTimeout(laco, 400); });
     }
 
-    function capturar(rc) {
-      var e = Math.min(1, 640 / Math.max(rc.w, rc.h));
+    function quadro() {
+      var vw = video.videoWidth, vh = video.videoHeight, e = Math.min(1, 640 / Math.max(vw, vh));
       var c = document.createElement('canvas');
-      c.width = Math.round(rc.w * e); c.height = Math.round(rc.h * e);
-      c.getContext('2d').drawImage(video, rc.x, rc.y, rc.w, rc.h, 0, 0, c.width, c.height);
-      el('camAviso').textContent = 'Validando...';
-      descritorDe(c).then(function (d) { CAM && CAM.fim({ canvas: c, descritor: d }); })
-        .catch(function () { acertos = 0; timer = setTimeout(laco, 300); });
+      c.width = Math.round(vw * e); c.height = Math.round(vh * e);
+      c.getContext('2d').drawImage(video, 0, 0, vw, vh, 0, 0, c.width, c.height);
+      return c;
+    }
+
+    /** Usa as amostras mais nítidas, tira o descritor de cada uma e devolve a média. */
+    function finalizar() {
+      var melhores = amostras.slice().sort(function (a, b) { return b.foco - a.foco; }).slice(0, AMOSTRAS);
+      amostras = [];
+      var descs = [];
+      melhores.reduce(function (p, a) {
+        return p.then(function () {
+          return descritorDe(a.canvas, 320).then(function (d) { descs.push(d); }, function () {});
+        });
+      }, Promise.resolve()).then(function () {
+        if (terminou) return;
+        if (!descs.length) { modal.classList.remove('alinhado'); timer = setTimeout(laco, 200); return; }
+        progresso(1); vibrar([20, 40, 20]);
+        var media = melhores.reduce(function (s, a) { return s + a.angulo; }, 0) / melhores.length;
+        CAM && CAM.fim({ canvas: melhores[0].canvas, descritor: descs.length > 1 ? mediaDescritores(descs) : descs[0], angulo: media });
+      });
     }
   });
 }
 
 function tirarFotoCadastro() {
   msg('rMsg');
-  obterRosto('Cadastro do rosto · foto ' + (S.fotosCad.length + 1) + ' de 3').then(function (r) {
+  var n = S.fotosCad.length;
+  // 1: de frente · 2: leve giro para um lado · 3: leve giro para o OUTRO lado
+  var opts = n === 0 ? { pose: 'frente' } : { pose: 'lado', sinal: n === 2 && S.ladoCad ? -S.ladoCad : 0 };
+  var txt = ['de frente', 'rosto levemente de lado', 'para o outro lado'][n];
+  obterRosto('Foto ' + (n + 1) + ' de 3 · ' + txt, opts).then(function (r) {
     var i = S.fotosCad.length;
+    if (i === 1) S.ladoCad = Math.sign(r.angulo) || 1;
     S.fotosCad.push(r.descritor);
     el('f' + i).innerHTML = '<img src="' + r.canvas.toDataURL('image/jpeg', 0.6) + '">';
     if (S.fotosCad.length >= 3) { el('bFoto').classList.add('hide'); el('bSalvarRosto').classList.remove('hide'); }
-    else el('bFoto').textContent = 'Tirar foto ' + (S.fotosCad.length + 1);
+    else el('bFoto').textContent = 'Tirar foto ' + (S.fotosCad.length + 1) + (S.fotosCad.length === 1 ? ' (leve giro para um lado)' : ' (para o outro lado)');
   }).catch(function (e) { if (!e.cancelado) msg('rMsg', e.message); });
 }
 
@@ -792,7 +990,7 @@ function bater() {
   gps.catch(function () {});
   var canvasFoto;
   var nomeTipo = el('pTipo') ? el('pTipo').options[el('pTipo').selectedIndex].text : 'Bater ponto';
-  obterRosto(nomeTipo).then(function (rosto) {
+  obterRosto(nomeTipo, { pose: 'frente', vida: provaVidaAtiva(), amostras: 2 }).then(function (rosto) {
     canvasFoto = rosto.canvas;
     carregando('Verificando localização...');
     return Promise.all([rosto.descritor, gps]);
@@ -808,9 +1006,15 @@ function bater() {
     });
   }).then(function (cp) {
     carregando();
-    el('pComprovante').innerHTML = '<div class="comprovante"><b>✔ Ponto registrado</b>' + esc(cp.nome) + '<br>' + esc(cp.tipo) +
-      '<br>' + esc(cp.dataHora) + '<br>' + esc(cp.loja) + '</div>';
+    var dh = String(cp.dataHora || '').split(' '), hora = (dh[1] || dh[0] || '').slice(0, 5);
+    el('pComprovante').innerHTML = '<div class="comprovante">' +
+      '<svg class="ck" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28"/><path d="M17 29l7 7 15-15"/></svg>' +
+      '<b>Ponto registrado</b><div class="hora">' + esc(hora) + '</div>' +
+      '<div class="lin">' + esc(cp.tipo) + ' · ' + esc(cp.nome) + '</div>' +
+      '<div class="lin">' + esc(dh[0] || '') + ' · ' + esc(cp.loja) + '</div></div>';
     el('pComprovante').classList.remove('hide');
+    vibrar([30, 60, 30]);
+    el('pComprovante').scrollIntoView({ behavior: 'smooth', block: 'center' });
     carregarEstado();
   }).catch(function (e) { carregando(); if (!e.cancelado) msg('pMsg', e.message); });
 }
@@ -1398,14 +1602,39 @@ function salvarLoja() {
     .catch(function (e) { carregando(); msg('aMsg', e.message); });
 }
 
+// ---------- App instalável (PWA) ----------
+var pedidoInstalar = null;
+function rodandoComoApp() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+function ehIphone() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function mostrarInstalar(sim) { document.querySelectorAll('.instalar').forEach(function (b) { b.classList.toggle('hide', !sim); }); }
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); pedidoInstalar = e; mostrarInstalar(true); });
+window.addEventListener('appinstalled', function () { pedidoInstalar = null; mostrarInstalar(false); });
+function instalarApp() {
+  if (pedidoInstalar) {
+    pedidoInstalar.prompt();
+    pedidoInstalar.userChoice.then(function () { pedidoInstalar = null; mostrarInstalar(false); });
+  } else if (ehIphone()) {
+    alert('Para instalar no iPhone:\n\n1. Toque em Compartilhar (quadrado com seta, na barra do Safari)\n2. Escolha "Adicionar à Tela de Início"\n3. Toque em Adicionar');
+  }
+}
+if (!rodandoComoApp() && ehIphone()) mostrarInstalar(true);
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+function tirarSplash() { var s = el('splash'); if (s && !s.classList.contains('sai')) { s.classList.add('sai'); setTimeout(function () { s.remove(); }, 400); } }
+setTimeout(tirarSplash, 4000);   // nunca prende a tela
+
 // ---------- Início ----------
 (function () {
   var tk = ler('tk');
-  if (!tk) return ir('login');
+  if (!tk) { tirarSplash(); return ir('login'); }
   S.token = tk;
-  carregando('Carregando...');
-  api('apiEu', tk).then(function (u) { carregando(); S.usuario = u; rotear(); })
-    .catch(function () { carregando(); S.token = null; guardar('tk', null); ir('login'); });
+  api('apiEu', tk).then(function (u) {
+    tirarSplash(); S.usuario = u;
+    if (u.login !== 'admin') carregarFace().catch(function () {});   // modelos do rosto já vão chegando
+    rotear();
+  })
+    .catch(function () { tirarSplash(); S.token = null; guardar('tk', null); ir('login'); });
 })();
 </script>
 </body>
