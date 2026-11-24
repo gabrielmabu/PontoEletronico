@@ -172,6 +172,8 @@
   .tp-sim { width:100%; margin-top:6px; background:#fff; border:1px solid var(--bd); border-radius:12px; }
   .tp-sim td, .tp-sim th { padding:8px 10px; font-size:13px; }
   #tpPrev { margin-top:16px; }
+  .tag-ab { display:inline-block; background:#FDECC8; color:#8A5A00; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:700; margin:1px 2px 1px 0; }
+  #eTab tr.ab td { background:#FFF8E6; } #eTab tr.al td { background:#FFFBF2; } #eTab tr.c td { color:#aaa; }
   .tag-al { display:inline-block; background:#FFF4E0; color:#9A6200; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:600; margin:1px 2px 1px 0; }
   .fech .mais { width:26px; height:26px; border-radius:50%; border:1px solid var(--vinho); background:#fff; color:var(--vinho); font:600 16px var(--sans); line-height:22px; cursor:pointer; padding:0; }
   .fech .mais.aberto { background:var(--vinho); color:#fff; }
@@ -468,7 +470,12 @@
     <button class="btn sec" onclick="pdfEspelho(false)">PDF deste colaborador</button>
     <button class="btn sec" onclick="pdfEspelho(true)">PDF de todos (1 página por pessoa)</button>
     <div id="ePdf"></div>
+    <div class="filtro" style="margin-top:10px">
+      <label class="switch"><input type="checkbox" id="eSoPend" onchange="repintarEspelho()"><i></i> Só dias em aberto e com diferença</label>
+      <span class="mut">Sugerir ajuste a partir de</span><input id="eLimiar" inputmode="numeric" style="width:64px" onchange="guardar('espLimiar', this.value); repintarEspelho()"><span class="mut">min a mais ou a menos</span>
+    </div>
     <div id="eStatus"></div>
+    <div id="eResumo"></div>
     <p id="eTot" class="mut"></p>
     <div class="scroll"><table id="eTab"></table></div>
   </div>
@@ -1575,6 +1582,9 @@ function esquecerEspelho(colab, mes) {
 /** Ao abrir a aba: busca o fechamento do mês (traz todo mundo de uma vez) para trocar de pessoa na hora. */
 function abrirEspelho() {
   if (!el('eMes').value) el('eMes').value = mesAtual();
+  if (!el('eLimiar').value) el('eLimiar').value = ler('espLimiar') || 20;
+  garantirTipos().then(repintarEspelho).catch(function () {});
+  if (!S.regras) api('apiAdminRegras', S.token).then(function (r) { S.regras = r; repintarEspelho(); }).catch(function () {});
   prefetchFechamento(el('eMes').value);
   if (el('eColab').value) verEspelho();
 }
@@ -1592,16 +1602,60 @@ function prefetchFechamento(mes) {
 function statusEspelho(txt, girando) {
   el('eStatus').innerHTML = txt ? '<div class="esp-status">' + (girando ? '<span class="gira"></span>' : '') + txt + '</div>' : '';
 }
-function pintarEspelho(r) {
-  var t = r.totais, rs = function (v) { return reais(v); };
+var ESP_ULT = null;
+function repintarEspelho() { if (ESP_ULT) pintarEspelho(ESP_ULT.r, ESP_ULT.k); }
+function isoDeData(t) { var m = /^(\d{2})\/(\d{2})(?:\/(\d{4}))?/.exec(String(t || '')); return m ? (m[3] || '') + '-' + m[2] + '-' + m[1] : ''; }
+/**
+ * Espelho com TODOS os dias do mês até hoje. Marca:
+ *  · em aberto: dia de loja aberta sem batida nem ajuste, ou com batida incompleta (falta saída/retorno);
+ *  · diferença: saldo do dia ≥ limiar (padrão 20 min) para mais ou para menos → sugere ajuste.
+ * Na base, "Abonar Horas" é o ajuste de horas mais usado (185 vezes), por isso vem primeiro.
+ */
+function pintarEspelho(r, k) {
+  ESP_ULT = { r: r, k: k };
+  var colab = (k || '').split('|')[0], mes = (k || '').split('|')[1] || el('eMes').value;
+  var t = r.totais, limiar = Math.max(1, Number(el('eLimiar').value) || 20), soPend = el('eSoPend').checked;
   el('eTot').innerHTML = 'Dias pagos: <b>' + t.dias + '</b> · Horas: <b>' + t.horas + '</b> · Saldo do mês: <b class="' + sinal(t.saldo) + '">' + t.saldo +
-    '</b> · Banco total: <b class="' + sinal(r.banco) + '">' + r.banco + '</b><br>Salário: <b>' + rs(t.salario) + '</b> · Passagem: <b>' + rs(t.passagem) + '</b>';
-  el('eTab').innerHTML = '<tr><th>Dia</th><th>Ent.</th><th>Alm.</th><th>Ret.</th><th>Saída</th><th>Trab.</th><th>Saldo</th><th>Ajustes / obs.</th></tr>' +
-    r.dias.map(function (d) {
-      return '<tr><td>' + String(d.data).slice(0, 5) + ' ' + (d.semana || '') + '</td><td>' + (d.entrada || '') + '</td><td>' + (d.saidaInt || '') + '</td><td>' + (d.voltaInt || '') +
-        '</td><td>' + (d.saida || '') + '</td><td>' + (d.trabalhadas || '') + '</td><td class="' + sinal(d.saldo) + '">' + (d.saldo || '') + '</td><td class="mut">' +
-        esc([d.ajustes, d.obs, d.pendencia].filter(Boolean).join(' · ')) + '</td></tr>';
-    }).join('');
+    '</b> · Banco total: <b class="' + sinal(r.banco) + '">' + r.banco + '</b><br>Salário: <b>' + reais(t.salario) + '</b> · Passagem: <b>' + reais(t.passagem) + '</b>';
+  // monta o calendário do mês (até hoje) e encaixa os dias que vieram do servidor
+  var porIso = {}; (r.dias || []).forEach(function (d) { var iso = d.iso || isoDeData(d.data); if (iso.length === 6) iso = mes.slice(0, 4) + iso; porIso[iso] = d; });
+  var feriados = {}; ((S.regras && S.regras.feriados) || []).forEach(function (f) { feriados[f.data] = f.descricao; });
+  var hoje = hojeIso(), ano = +mes.slice(0, 4), mm = +mes.slice(5, 7), ult = new Date(ano, mm, 0).getDate(), nomes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  var abertos = 0, difs = 0, linhas = [];
+  for (var dia = 1; dia <= ult; dia++) {
+    var iso = mes + '-' + ('0' + dia).slice(-2); if (iso > hoje) break;
+    var d = porIso[iso] || { data: ('0' + dia).slice(-2) + '/' + ('0' + mm).slice(-2), semana: nomes[new Date(ano, mm - 1, dia).getDay()] };
+    var dow = new Date(ano, mm - 1, dia).getDay(), temBatida = !!(d.entrada || d.saida || d.saidaInt || d.voltaInt), temAjuste = !!(d.ajustes || d.obs);
+    var estado = '', cod = '', sugs = [];
+    if (feriados[iso]) estado = 'feriado';
+    else if (iso === hoje && (!temBatida || !d.saida)) estado = 'hoje';   // dia em andamento: ainda não está em aberto
+    else if (!temBatida && !temAjuste && dow !== 0) { estado = 'aberto'; cod = 'SEM_REGISTRO'; }
+    else if (temBatida && !d.saida) { estado = 'aberto'; cod = 'FALTA_SAIDA'; }
+    else if (temBatida && d.saidaInt && !d.voltaInt) { estado = 'aberto'; cod = 'FALTA_RETORNO'; }
+    else if (temBatida && !d.entrada) { estado = 'aberto'; cod = 'FALTA_ENTRADA'; }
+    var sm = minDe(d.saldo), dif = sm !== null && Math.abs(sm) >= limiar && !temAjuste && estado !== 'aberto';
+    if (estado === 'aberto') { abertos++; sugs = sugestoesPorCodigo(cod); }
+    if (dif) {
+      difs++;
+      var base = [['OBS_HORAS', 'Abonar horas']], extra = sm > 0 ? [['ADICIONAR_BANCO', 'Somar ao banco']] : sugestoesPorCodigo('SALDO_NEGATIVO');
+      sugs = base.concat(extra).filter(function (x, i, a) { return tipoAjuste(x[0]) && a.map(function (y) { return y[0]; }).indexOf(x[0]) === i; })
+        .map(function (x) { var tt = tipoAjuste(x[0]); return [x[0], (tt && tt.chip) || x[1]]; });
+    }
+    if (soPend && estado !== 'aberto' && !dif) continue;
+    var tag = estado === 'aberto' ? '<span class="tag-ab">Em aberto · ' + esc(nomeAlerta(cod) || 'sem registro') + '</span>' :
+      (estado === 'feriado' ? '<span class="mut">Feriado: ' + esc(feriados[iso]) + '</span>' : '') + (estado === 'hoje' ? '<span class="mut">Hoje · em andamento</span>' : '') +
+      (dif ? '<span class="tag-al">' + (sm > 0 ? '+' : '−') + hhmm(Math.abs(sm)) + ' no dia</span>' : '');
+    linhas.push('<tr class="' + (estado === 'aberto' ? 'ab' : (dif ? 'al' : (dow === 0 && !temBatida ? 'c' : ''))) + '"><td>' + String(d.data).slice(0, 5) + ' ' + (d.semana || nomes[dow]) + '</td><td>' + (d.entrada || '') + '</td><td>' + (d.saidaInt || '') + '</td><td>' + (d.voltaInt || '') +
+      '</td><td>' + (d.saida || '') + '</td><td>' + (d.trabalhadas || '') + '</td><td class="' + sinal(d.saldo) + '">' + (d.saldo || '') + '</td><td style="white-space:normal">' + tag + ' ' +
+      '<span class="mut">' + esc([d.ajustes, d.obs, estado === 'aberto' ? '' : d.pendencia].filter(Boolean).join(' · ')) + '</span>' +
+      (sugs.length && colab ? '<div>' + chipsDe(sugs, colab, iso) + '</div>' : '') + '</td></tr>');
+  }
+  el('eResumo').innerHTML = '<div class="kpis" style="margin:8px 0">' +
+    '<div class="kpi"><b style="color:' + (abertos ? '#B7791F' : 'var(--ok)') + '">' + abertos + '</b><span>dia(s) em aberto até hoje</span></div>' +
+    '<div class="kpi"><b style="color:' + (difs ? '#B7791F' : 'var(--ok)') + '">' + difs + '</b><span>dia(s) com ' + limiar + ' min ou mais de diferença sem ajuste</span></div></div>' +
+    (abertos || difs ? '<p class="mut" style="margin:0 0 6px">Toque no botão sugerido na linha para abrir o ajuste já preenchido. "Abonar horas" é o ajuste mais usado na sua base para essas diferenças.' + (r.previa ? ' <b>Prévia:</b> ajustes já lançados aparecem quando o espelho completo chegar.' : '') + '</p>' : '');
+  el('eTab').innerHTML = '<tr><th>Dia</th><th>Ent.</th><th>Alm.</th><th>Ret.</th><th>Saída</th><th>Trab.</th><th>Saldo</th><th>Situação / ajustes</th></tr>' +
+    (linhas.join('') || '<tr><td colspan="8" class="mut">Nada pendente neste mês. ✓</td></tr>');
 }
 /** Prévia instantânea montada com o fechamento do mês (mesmos cálculos, sem a coluna de ajustes detalhada). */
 function pintarDoFechamento(k) {
@@ -1609,9 +1663,9 @@ function pintarDoFechamento(k) {
   var c = (f.r.lista || []).filter(function (x) { return x.id === p[0]; })[0]; if (!c) return false;
   var q = c.q || [{}, {}], soma = function (campo) { return (Number(q[0][campo]) || 0) + (Number(q[1][campo]) || 0); };
   var somaH = function (campo) { var m = (minDe(q[0][campo]) || 0) + (minDe(q[1][campo]) || 0); return (m < 0 ? '-' : '') + hhmm(Math.abs(m)); };
-  pintarEspelho({ banco: c.banco, totais: { dias: soma('dias'), horas: somaH('horas'), saldo: somaH('saldo'), salario: soma('sal'), passagem: soma('pas') },
-    dias: (c.dias || []).map(function (d) { return { data: d.data, semana: d.sem, entrada: d.entrada, saidaInt: d.saidaInt, voltaInt: d.voltaInt, saida: d.saida,
-      trabalhadas: d.horas, saldo: d.saldo, obs: d.nota && d.nota !== 'SEM REGISTRO' ? d.nota : '', pendencia: (d.alertas || []).join(', ') }; }) });
+  pintarEspelho({ previa: true, banco: c.banco, totais: { dias: soma('dias'), horas: somaH('horas'), saldo: somaH('saldo'), salario: soma('sal'), passagem: soma('pas') },
+    dias: (c.dias || []).map(function (d) { return { iso: d.iso, data: d.data, semana: d.sem, entrada: d.entrada, saidaInt: d.saidaInt, voltaInt: d.voltaInt, saida: d.saida,
+      trabalhadas: d.horas, saldo: d.saldo, obs: d.nota && d.nota !== 'SEM REGISTRO' ? d.nota : '', pendencia: (d.alertas || []).join(', ') }; }) }, k);
   return true;
 }
 function verEspelho(forcar) {
@@ -1619,7 +1673,7 @@ function verEspelho(forcar) {
   var k = colab + '|' + mes, meu = ++ESP.pedido, ini = Date.now(), c = ESP.full[k];
   el('eTab').dataset.k = k; el('ePdf').innerHTML = '';
   if (c && !forcar) {
-    pintarEspelho(c.r);
+    pintarEspelho(c.r, k);
     if (Date.now() - c.ts < 2 * 60 * 1000) { statusEspelho('✓ Atualizado agora há pouco'); return; }
     statusEspelho('Mostrando o espelho guardado · conferindo se mudou algo...', true);
   } else if (!forcar && pintarDoFechamento(k)) {
@@ -1639,7 +1693,7 @@ function verEspelho(forcar) {
   api('apiAdminEspelhoColab', S.token, colab, mes).then(function (r) {
     clearInterval(relogio); guardarEspelho(k, r);
     if (meu !== ESP.pedido) return;   // a pessoa trocou de colaborador no meio: não pinta por cima
-    pintarEspelho(r); statusEspelho('✓ Completo · ' + Math.round((Date.now() - ini) / 1000) + ' s');
+    pintarEspelho(r, k); statusEspelho('✓ Completo · ' + Math.round((Date.now() - ini) / 1000) + ' s');
   }).catch(function (e) {
     clearInterval(relogio); if (meu !== ESP.pedido) return;
     statusEspelho(''); msg('aMsg', e.message);
