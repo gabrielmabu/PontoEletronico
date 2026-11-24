@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ponto facial · Instalar o app</title>
+<meta name="description" content="Controle de ponto com reconhecimento facial e GPS, usando a sua própria conta Google. Peça o app.">
+<meta name="theme-color" content="#70122D">
+<link rel="icon" href="../icons/icon-192.png">
+<style>
+  :root { --vinho:#70122D; --vinho2:#8E2445; --claro:#F6ECEF; --bg:#FAF6F4; --txt:#2A1A20; --mut:#7D6B72; --bd:#ECE2E5; --ok:#2E7D4F; --err:#B3261E; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.5 Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+  .topo { background:var(--vinho); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 18px 56px; text-align:center; }
+  .topo h1 { margin:0 0 6px; font:600 26px/1.15 Georgia, 'Times New Roman', serif; }
+  .topo p { margin:0 auto; max-width:420px; opacity:.9; font-size:15px; }
+  main { max-width:460px; margin:-36px auto 0; padding:0 16px calc(32px + env(safe-area-inset-bottom)); }
+  .card { background:#fff; border:1px solid var(--bd); border-radius:18px; padding:20px; box-shadow:0 8px 24px rgba(112,18,45,.08); margin-bottom:16px; }
+  .beneficios { list-style:none; margin:0 0 4px; padding:0; display:grid; gap:8px; }
+  .beneficios li { display:flex; gap:10px; align-items:flex-start; font-size:14.5px; }
+  .beneficios b { color:var(--vinho); }
+  .ic { flex:0 0 22px; height:22px; border-radius:50%; background:var(--claro); color:var(--vinho); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  h2 { margin:0 0 4px; font:600 20px Georgia, serif; color:var(--vinho); }
+  .sub { color:var(--mut); font-size:13.5px; margin:0 0 12px; }
+  label { display:block; font-size:13px; font-weight:600; margin:12px 0 4px; }
+  input, select { width:100%; padding:12px 13px; font:inherit; border:1px solid var(--bd); border-radius:12px; background:#fff; color:var(--txt); }
+  input:focus, select:focus { outline:2px solid var(--vinho2); outline-offset:1px; border-color:transparent; }
+  .opt { font-weight:400; color:var(--mut); }
+  .chk { display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13.5px; font-weight:400; }
+  .chk input { width:20px; height:20px; margin:2px 0 0; flex:0 0 auto; }
+  button { width:100%; margin-top:18px; padding:14px; border:0; border-radius:14px; background:var(--vinho); color:#fff; font-family:inherit; font-size:16px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.6; }
+  .btn2 { display:block; text-align:center; margin-top:12px; padding:13px; border-radius:14px; background:#fff; color:var(--vinho); border:1px solid var(--vinho); font-weight:600; text-decoration:none; }
+  .msg { display:none; margin-top:12px; padding:10px 12px; border-radius:12px; font-size:14px; background:#FBEDEC; color:var(--err); border:1px solid #E4B8B4; }
+  .hp { position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+  .lgpd { color:var(--mut); font-size:12px; margin-top:12px; }
+  #ok { display:none; text-align:center; }
+  #ok .grande { width:64px; height:64px; margin:4px auto 10px; border-radius:50%; background:#EAF5EE; color:var(--ok); display:flex; align-items:center; justify-content:center; font-size:34px; }
+  #ok ol { text-align:left; margin:12px 0 0; padding-left:20px; font-size:14.5px; }
+</style>
+</head>
+<body>
+<div class="topo">
+  <h1>Ponto facial no celular</h1>
+  <p>Seus colaboradores batem o ponto com o rosto e o GPS. Os dados ficam na <b>sua conta Google</b>.</p>
+</div>
+<main>
+  <div class="card">
+    <ul class="beneficios">
+      <li><span class="ic">✓</span><span><b>Rosto + GPS:</b> só vale perto da loja e com a pessoa certa.</span></li>
+      <li><span class="ic">✓</span><span><b>Fechamento pronto:</b> horas, banco de horas e espelho do ponto sem planilha manual.</span></li>
+      <li><span class="ic">✓</span><span><b>Escala e férias:</b> gerador de escala (inclusive por turnos) que avisa quando falta gente.</span></li>
+      <li><span class="ic">✓</span><span><b>Sem mensalidade de banco de dados:</b> usa planilha e Drive da sua empresa.</span></li>
+    </ul>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2>Quero o app</h2>
+    <p class="sub">Deixe seu contato e eu te ajudo a colocar para funcionar.</p>
+    <form id="f" novalidate autocomplete="on">
+      <label for="empresa">Nome da empresa</label>
+      <input id="empresa" name="organization" autocomplete="organization" maxlength="80" required>
+      <label for="resp">Seu nome</label>
+      <input id="resp" name="name" autocomplete="name" maxlength="80" required>
+      <label for="zap">WhatsApp</label>
+      <input id="zap" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(81) 99999-9999" maxlength="16" required>
+      <label for="faixa">Quantos colaboradores? <span class="opt">(opcional)</span></label>
+      <select id="faixa"><option value="">Prefiro não informar</option><option>1 a 5</option><option>6 a 15</option><option>16 a 50</option><option>mais de 50</option></select>
+      <label for="email">E-mail <span class="opt">(opcional)</span></label>
+      <input id="email" name="email" type="email" autocomplete="email" maxlength="120">
+      <input class="hp" id="site" name="site" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label class="chk"><input type="checkbox" id="aceita"><span>Aceito receber novidades e ofertas por WhatsApp e e-mail. <span class="opt">(opcional, você pode sair quando quiser)</span></span></label>
+      <div class="msg" id="erro" role="alert"></div>
+      <button type="submit" id="enviar">Quero testar o app</button>
+      <p class="lgpd">Usamos seus dados só para falar sobre o app, conforme a LGPD. Sem marcar a caixa acima, não enviamos propaganda.</p>
+    </form>
+  </div>
+
+  <div class="card" id="ok">
+    <div class="grande">✓</div>
+    <h2>Recebi seu contato!</h2>
+    <p class="sub">Já pode conhecer o app. Para instalar no celular:</p>
+    <ol>
+      <li><b>Android:</b> abra o app e toque em <b>Instalar app</b> (ou menu ⋮ → Adicionar à tela inicial).</li>
+      <li><b>iPhone:</b> abra no Safari, toque em Compartilhar e em <b>Adicionar à Tela de Início</b>.</li>
+    </ol>
+    <a class="btn2" id="abrir" href="../">Abrir o app</a>
+    <a class="btn2" id="zapdev" href="#" style="display:none">Falar comigo no WhatsApp</a>
+  </div>
+</main>
+<script>
+// Endereço do servidor (Apps Script). Mesmo do app.
+var API_URL = 'https://script.google.com/macros/s/AKfycbzjST21YKpX_8SPxxPHiqwtRPIycI9dkZfj2539kxcJ-NmrcBtjVdIpeVvupgJfmq3H/exec';
+// WhatsApp de quem atende (somente números, com 55 e DDD, ex.: 5581999990000). Vazio = o botão não aparece.
+var WHATSAPP_ATENDIMENTO = '';
+
+function el(i) { return document.getElementById(i); }
+var origem = (new URLSearchParams(location.search).get('origem') || 'link').toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 40);
+
+// máscara (81) 99999-9999
+el('zap').addEventListener('input', function () {
+  var d = this.value.replace(/\D/g, '').slice(0, 11), s = '';
+  if (d.length > 0) s = '(' + d.slice(0, 2);
+  if (d.length >= 3) s += ') ' + d.slice(2, d.length > 10 ? 7 : 6);
+  if (d.length > (d.length > 10 ? 7 : 6)) s += '-' + d.slice(d.length > 10 ? 7 : 6);
+  this.value = s;
+});
+
+function erro(t) { var e = el('erro'); e.textContent = t || ''; e.style.display = t ? 'block' : 'none'; }
+
+el('f').addEventListener('submit', function (ev) {
+  ev.preventDefault(); erro('');
+  var d = {
+    empresa: el('empresa').value, responsavel: el('resp').value, whatsapp: el('zap').value, faixa: el('faixa').value,
+    email: el('email').value, aceita: el('aceita').checked, origem: origem, site: el('site').value
+  };
+  var dig = d.whatsapp.replace(/\D/g, '');
+  if (d.empresa.trim().length < 2) return erro('Informe o nome da empresa.');
+  if (d.responsavel.trim().length < 2) return erro('Informe o seu nome.');
+  if (dig.length < 10 || dig.length > 11 || (dig.length === 11 && dig.charAt(2) !== '9')) return erro('WhatsApp inválido. Use DDD + número, ex.: (81) 99999-9999.');
+  var b = el('enviar'); b.disabled = true; b.textContent = 'Enviando...';
+  fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: 'apiCaptarContato', args: [d] }) })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j.ok) throw new Error(j.erro || 'Não foi possível enviar.');
+      el('formCard').style.display = 'none'; el('ok').style.display = 'block'; window.scrollTo(0, 0);
+      if (WHATSAPP_ATENDIMENTO) {
+        var a = el('zapdev'); a.style.display = 'block';
+        a.href = 'https://wa.me/' + WHATSAPP_ATENDIMENTO + '?text=' + encodeURIComponent('Olá! Conheci o app de ponto pelo cartão e quero saber mais.');
+      }
+    })
+    .catch(function (e) { erro(e.message === 'Failed to fetch' ? 'Sem conexão. Confira a internet e tente de novo.' : e.message); b.disabled = false; b.textContent = 'Quero testar o app'; });
+});
+</script>
+</body>
+</html>

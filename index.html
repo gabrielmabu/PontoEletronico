@@ -296,6 +296,12 @@
   table.esc td.xav { box-shadow:inset 0 0 0 2px #F0B429; }
   table.esc tr.ruim td:first-child { color:var(--err); font-weight:600; }
   table.esc tr.ruim td { background-color:#FFF8F7; } table.esc tr.ruim td.fo { background:var(--vinho-claro); }
+  .tg { border-collapse:separate; border-spacing:2px; font-size:12px; } .tg th { background:none; padding:2px 4px; font-weight:600; color:var(--mut); white-space:nowrap; }
+  .tg td { padding:3px 6px; text-align:center; border-radius:6px; min-width:34px; white-space:nowrap; } .tg td.nome { text-align:left; font-weight:600; background:none; padding-left:0; }
+  .tg .tM { background:#FFF3C4; } .tg .tT { background:#FFD9B0; } .tg .tN { background:#3A3F6B; color:#fff; } .tg .tF { background:#EEE; color:#999; } .tg .tX { background:#F6D7E0; color:#8E2445; } .tg .tO { background:#DDEBFF; }
+  .tg tr.virt td.nome { color:var(--err); font-style:italic; } .tg td.sem { border-left:3px solid #fff; }
+  .tur-alerta { border:1px solid #E4B8B4; background:var(--err-bg); color:#7A1E18; border-radius:12px; padding:10px 14px; margin:8px 0; font-size:14px; }
+  .tur-ok { border:1px solid #B9DCC5; background:var(--ok-bg); color:#1F5A38; border-radius:12px; padding:10px 14px; margin:8px 0; font-size:14px; }
   .esc-pessoas { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:6px 14px; }
   .esc-pessoas div { display:flex; align-items:center; gap:8px; } .esc-pessoas label { margin:0; flex:1; text-transform:none; letter-spacing:0; font-size:14px; font-weight:500; color:var(--txt); display:flex; gap:6px; align-items:center; }
   .esc-pessoas select, #escDias select { width:auto; padding:5px 30px 5px 8px; font-size:13px; }
@@ -638,6 +644,18 @@
         <div><label>Começar na semana de</label><input type="date" id="escInicio" value="2026-12-14"></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
+    <details class="legenda" id="escTurnos" open onchange="turMudou()"><summary>🔄 Escala por turnos (vários turnos, descanso mínimo entre jornadas, "precisa contratar")</summary>
+      <p class="mut" style="margin:8px 0">Para empresas com 2 ou 3 turnos (ex.: manhã, tarde e noite). O gerador respeita o <b>descanso mínimo entre jornadas</b> (CLT art. 66, 11 h), as folgas da semana, o limite de horas e os dias seguidos. Se a demanda não couber na equipe, ele <b>diz quantas pessoas de qual função precisa contratar</b>. Usa a equipe, as funções e as férias acima.</p>
+      <label>Turnos</label>
+      <div class="scroll"><table id="turTab"></table></div>
+      <div class="linha"><div><label>Descanso mínimo entre jornadas (h)</label><input id="turDesc" inputmode="decimal"></div><div><label>Máximo de dias seguidos</label><input id="turSeg" inputmode="numeric"></div></div>
+      <label>Quantas pessoas cada turno precisa (por função)</label>
+      <div class="scroll"><table id="turDem"></table></div>
+      <label>Quem só pode fazer um turno (opcional)</label>
+      <div id="turFix" class="esc-pessoas"></div>
+      <div class="linha" style="margin-top:10px"><button class="btn" onclick="turGerar()">Gerar escala por turnos</button><button class="btn sec" onclick="turCsv()">⤓ Planilha (CSV)</button></div>
+      <div id="turRes"></div>
+    </details>
     <div id="escRes"></div>
     <p class="mut" style="margin-top:14px">Ferramenta de apoio ao planejamento. Confira convenção coletiva da categoria e oriente-se com o contador ou advogado trabalhista antes de aplicar.</p>
   </div>
@@ -684,6 +702,7 @@
 <div id="splash"><img src="logo.jpg" alt=""></div>
 <div id="load" class="carregando hide"><div id="loadTxt">Carregando...</div></div>
 
+<script src="escala-turnos.js"></script>
 <script>
 var MODELOS = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
 var LIB = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js';
@@ -2096,7 +2115,7 @@ function carregarEscala() {
   if (ESC.real) return;
   var m = mesAtual();
   Promise.all([mesMenos(m, 1), m].map(function (mm) { return api('apiAdminFechamentoTela', S.token, mm).catch(function () { return { lista: [] }; }); }))
-    .then(function (rr) { ESC.real = analisarReal(rr); pintarDiagnostico(); preencherParametros(); montarEscala('atual'); preencherFerias(); })
+    .then(function (rr) { ESC.real = analisarReal(rr); pintarDiagnostico(); preencherParametros(); montarEscala('atual'); preencherFerias(); turPintar(); })
     .catch(function (e) { el('escDiag').innerHTML = '<p class="msg err" style="display:block">' + esc(e.message) + '</p>'; });
 }
 
@@ -2242,6 +2261,7 @@ function aoMudarParam(ev) {
   }
   if (t.classList && (t.classList.contains('escFun') || t.type === 'checkbox')) pintarFuncMin();
   salvarCfgEscala();
+  if (t.closest && !t.closest('#escTurnos') && (t.classList.contains('escFun') || t.type === 'checkbox')) { turSalvar(); turPintar(); }
   if (ESC.ultima) montarEscala('manter');
   if (el('ferLista')) pintarFerias();
 }
@@ -2287,6 +2307,137 @@ function pessoaEscala(pid) {
   var x = document.querySelector('#escPessoas input[data-id="' + pid + '"]'); if (!x) return null;
   return { id: pid, nome: x.dataset.nome, funcao: x.closest('div').querySelector('select').value };
 }
+// ---------- Escala por turnos (motor em escala-turnos.js) ----------
+var TUR = { cfg: null, ultimo: null };
+function turPadrao() {
+  return { turnos: [{ id: 'M', nome: 'Manhã', ini: '06:00', fim: '14:00', horas: '8' }, { id: 'T', nome: 'Tarde', ini: '14:00', fim: '22:00', horas: '8' }, { id: 'N', nome: 'Noite', ini: '22:00', fim: '06:00', horas: '8' }],
+    descansoH: 11, maxSeg: 6, demanda: {}, fixos: {} };
+}
+function turCarregar() {
+  if (TUR.cfg) return;
+  try { TUR.cfg = JSON.parse(ler('escTurnos') || 'null'); } catch (e) { TUR.cfg = null; }
+  if (!TUR.cfg || !TUR.cfg.turnos || !TUR.cfg.turnos.length) TUR.cfg = turPadrao();
+  TUR.cfg.demanda = TUR.cfg.demanda || {}; TUR.cfg.fixos = TUR.cfg.fixos || {};
+}
+function turFuncoes() {   // funções das pessoas marcadas na equipe
+  var f = []; [].slice.call(document.querySelectorAll('#escPessoas input:checked')).forEach(function (x) {
+    var s = x.closest('div').querySelector('select'), v = s ? s.value : ''; if (v && f.indexOf(v) < 0) f.push(v);
+  }); return f;
+}
+function turSalvar() {   // lê a tela para TUR.cfg
+  turCarregar();
+  var linhas = document.querySelectorAll('#turTab tr[data-i]');
+  if (linhas.length) TUR.cfg.turnos = [].slice.call(linhas).map(function (tr) {
+    var i = tr.dataset.i;
+    return { id: tr.dataset.id, nome: el('turN' + i).value.trim() || ('Turno ' + (+i + 1)), ini: el('turI' + i).value.trim(), fim: el('turF' + i).value.trim(), horas: nBR(el('turH' + i).value) };
+  });
+  if (el('turDesc').value !== '') TUR.cfg.descansoH = Number(nBR(el('turDesc').value)) || 11;
+  if (el('turSeg').value !== '') TUR.cfg.maxSeg = Math.max(1, Number(el('turSeg').value) || 6);
+  document.querySelectorAll('#turDem input[data-f]').forEach(function (x) {
+    var f = x.dataset.f, t = x.dataset.t, k = Number(x.dataset.k);
+    TUR.cfg.demanda[f] = TUR.cfg.demanda[f] || {}; TUR.cfg.demanda[f][t] = TUR.cfg.demanda[f][t] || [0, 0, 0];
+    TUR.cfg.demanda[f][t][k] = Math.max(0, Number(x.value) || 0);
+  });
+  document.querySelectorAll('#turFix select[data-pid]').forEach(function (s) { if (s.value) TUR.cfg.fixos[s.dataset.pid] = s.value; else delete TUR.cfg.fixos[s.dataset.pid]; });
+  guardar('escTurnos', JSON.stringify(TUR.cfg));
+}
+function turMudou() { turSalvar(); }
+function turPintar() {
+  turCarregar(); var c = TUR.cfg;
+  el('turTab').innerHTML = '<tr><th>Turno</th><th>Início</th><th>Fim</th><th>Horas pagas</th><th></th></tr>' + c.turnos.map(function (t, i) {
+    return '<tr data-i="' + i + '" data-id="' + esc(t.id) + '"><td><input id="turN' + i + '" value="' + esc(t.nome) + '"></td><td><input id="turI' + i + '" value="' + esc(t.ini) + '" placeholder="06:00"></td>' +
+      '<td><input id="turF' + i + '" value="' + esc(t.fim) + '" placeholder="14:00"></td><td><input id="turH' + i + '" inputmode="decimal" value="' + esc(vBR(t.horas)) + '"></td>' +
+      '<td>' + (c.turnos.length > 1 ? '<span class="lk" onclick="turRemover(' + i + ')">remover</span>' : '') + '</td></tr>';
+  }).join('') + (c.turnos.length < 5 ? '<tr><td colspan="5"><span class="lk" onclick="turAdicionar()">+ adicionar turno</span> <span class="mut">· se o fim for menor que o início, o turno passa da meia-noite</span></td></tr>' : '');
+  el('turDesc').value = vBR(c.descansoH); el('turSeg').value = c.maxSeg;
+  var fs_ = turFuncoes();
+  el('turDem').innerHTML = fs_.length ? '<tr><th>Função</th><th>Turno</th><th>Seg a sex</th><th>Sábado</th><th>Domingo</th></tr>' + fs_.map(function (f) {
+    return c.turnos.map(function (t, ti) {
+      var d = (c.demanda[f] && c.demanda[f][t.id]) || [0, 0, 0];
+      return '<tr>' + (ti === 0 ? '<td rowspan="' + c.turnos.length + '"><b>' + esc(f) + '</b></td>' : '') + '<td>' + esc(t.nome) + '</td>' +
+        [0, 1, 2].map(function (k) { return '<td><input data-f="' + esc(f) + '" data-t="' + esc(t.id) + '" data-k="' + k + '" inputmode="numeric" style="width:64px" value="' + d[k] + '"></td>'; }).join('') + '</tr>';
+    }).join('');
+  }).join('') : '<tr><td class="mut">Marque a equipe e as funções em "Movimento, equipe e funções" acima.</td></tr>';
+  el('turFix').innerHTML = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) {
+    var pid = x.dataset.id, atual = c.fixos[pid] || '';
+    return '<div><label>' + esc(x.dataset.nome) + '</label><select data-pid="' + esc(pid) + '"><option value="">qualquer turno</option>' + c.turnos.map(function (t) { return '<option value="' + esc(t.id) + '"' + (atual === t.id ? ' selected' : '') + '>só ' + esc(t.nome) + '</option>'; }).join('') + '</select></div>';
+  }).join('');
+}
+function turAdicionar() { turSalvar(); var n = TUR.cfg.turnos.length + 1; TUR.cfg.turnos.push({ id: 'X' + n, nome: 'Turno ' + n, ini: '08:00', fim: '16:00', horas: '7' }); turPintar(); }
+function turRemover(i) { turSalvar(); var id = TUR.cfg.turnos[i].id; TUR.cfg.turnos.splice(i, 1); Object.keys(TUR.cfg.demanda).forEach(function (f) { delete TUR.cfg.demanda[f][id]; }); guardar('escTurnos', JSON.stringify(TUR.cfg)); turPintar(); }
+
+function turIndisp(pid) {
+  var o = {}; feriasLista().forEach(function (f) { if (f.pid === pid) for (var d = f.ini; d <= f.fim; d = isoMais(d, 1)) o[d] = true; }); return o;
+}
+function turGerar() {
+  if (!window.EscalaTurnos) { el('turRes').innerHTML = '<p class="msg err" style="display:block">Motor da escala não carregou. Recarregue a página.</p>'; return; }
+  turSalvar(); var c = TUR.cfg;
+  var gente = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) {
+    var s = x.closest('div').querySelector('select'), pid = x.dataset.id;
+    return { id: pid, nome: x.dataset.nome, funcao: s ? s.value : '', turnos: c.fixos[pid] ? [c.fixos[pid]] : null, indisp: turIndisp(pid) };
+  });
+  if (!gente.length) { el('turRes').innerHTML = '<p class="msg err" style="display:block">Marque pelo menos uma pessoa da equipe.</p>'; return; }
+  var demanda = {};
+  Object.keys(c.demanda).forEach(function (f) {
+    demanda[f] = {};
+    Object.keys(c.demanda[f]).forEach(function (t) { var d = c.demanda[f][t]; demanda[f][t] = [d[0], d[0], d[0], d[0], d[0], d[1], d[2]]; });
+  });
+  var inicio = segundaDe(el('escInicio').value || '2026-12-14'), sem = Math.min(8, Number(el('escSemanas').value) || 4);
+  el('turRes').innerHTML = '<p class="mut">Gerando...</p>';
+  setTimeout(function () {
+    var r;
+    try {
+      r = EscalaTurnos.gerar({ inicio: inicio, semanas: sem, turnos: c.turnos, descansoH: c.descansoH, maxSeguidos: c.maxSeg, folgasSemana: 2,
+        horasSemana: Number(el('escLimite').value) || 42, pessoas: gente, demanda: demanda });
+    } catch (e) { el('turRes').innerHTML = '<p class="msg err" style="display:block">' + esc(e.message) + '</p>'; return; }
+    TUR.ultimo = { r: r, gente: gente, inicio: inicio };
+    turMostrar();
+  }, 30);
+}
+function turMostrar() {
+  var U = TUR.ultimo; if (!U) return; var r = U.r, dsem = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], html = '';
+  if (r.contratar.length) {
+    html += r.contratar.map(function (c) {
+      var turnos = Object.keys(c.porTurno).map(function (t) { var tn = r.turnos.filter(function (x) { return x.id === t; })[0]; return (tn ? tn.nome : t) + ': ' + c.porTurno[t]; }).join(' · ');
+      return '<div class="tur-alerta"><b>' + esc(c.texto) + '</b><br><span style="font-size:13px">Vagas sem cobertura por turno (' + esc(turnos) + '). Hoje há ' + c.atuais + ' pessoa(s) de ' + esc(c.funcao) + '. A grade abaixo já mostra a escala com a(s) pessoa(s) novas (linhas em vermelho).</span></div>';
+    }).join('');
+    var ex = r.falta.slice(0, 4).map(function (f) { return f.faltam + ' de ' + esc(f.funcao) + ' no turno ' + esc(f.turnoNome) + ' em ' + dataBR(f.iso); });
+    if (ex.length) html += '<p class="mut">Exemplos de buraco com a equipe de hoje: ' + ex.join('; ') + (r.falta.length > 4 ? '; ...' : '') + '.</p>';
+  } else if (r.ok) html += '<div class="tur-ok"><b>✓ Escala fechada.</b> Todos os turnos cobertos, com descanso mínimo, 2 folgas por semana e dentro do limite de horas.</div>';
+  if (r.violacoes.length) html += '<div class="tur-alerta"><b>Atenção: regras quebradas</b><br>' + r.violacoes.slice(0, 8).map(esc).join('<br>') + '</div>';
+  var ids = U.gente.map(function (g) { return g.id; }).concat(r.virtuais.map(function (v) { return v.id; })), nomes = {}, funcoes = {};
+  U.gente.concat(r.virtuais).forEach(function (g) { nomes[g.id] = g.nome; funcoes[g.id] = g.funcao; });
+  var nSem = r.dias.length / 7, cab1 = '<tr><th></th>', cab2 = '<tr><th>Colaborador(a)</th>';
+  r.dias.forEach(function (iso, i) { cab1 += '<th class="' + (i % 7 === 0 ? 'sem' : '') + '">' + dataBR(iso).slice(0, 5) + '</th>'; cab2 += '<th class="' + (i % 7 === 0 ? 'sem' : '') + '">' + dsem[i % 7] + '</th>'; });
+  cab1 += '<th></th>'; cab2 += '<th>' + r.turnos.map(function (t) { return esc(t.nome.charAt(0)); }).join('/') + '</th>';
+  var porFuncao = {}; ids.forEach(function (id) { (porFuncao[funcoes[id]] = porFuncao[funcoes[id]] || []).push(id); });
+  var corpo = '';
+  Object.keys(porFuncao).forEach(function (f) {
+    corpo += '<tr><td class="nome" colspan="' + (r.dias.length + 2) + '" style="padding-top:8px;color:var(--vinho)">' + esc(f || 'Equipe') + '</td></tr>';
+    porFuncao[f].forEach(function (id) {
+      var linha = r.grade[id] || [], cont = r.turnos.map(function (t) { return linha.filter(function (x) { return x === t.id; }).length; });
+      corpo += '<tr' + (id.indexOf('NOVO_') === 0 ? ' class="virt"' : '') + '><td class="nome">' + esc(nomes[id]) + '</td>' + linha.map(function (c, i) {
+        var cl = c === 'F' ? 'tF' : (c === 'X' ? 'tX' : 't' + (['M', 'T', 'N'].indexOf(c) >= 0 ? c : 'O')), rot = c === 'F' ? '·' : (c === 'X' ? 'fér' : esc(c));
+        return '<td class="' + cl + (i % 7 === 0 ? ' sem' : '') + '" title="' + esc(c === 'F' ? 'Folga' : c === 'X' ? 'Férias/indisponível' : (r.turnos.filter(function (t) { return t.id === c; })[0] || {}).nome || c) + '">' + rot + '</td>';
+      }).join('') + '<td class="mut">' + cont.join('/') + '</td></tr>';
+    });
+  });
+  html += '<div class="scroll" style="margin-top:8px"><table class="tg">' + cab1 + '</tr>' + cab2 + '</tr>' + corpo + '</table></div>' +
+    '<p class="mut" style="margin-top:6px">' + r.turnos.map(function (t) { return '<b>' + esc(t.id) + '</b> ' + esc(t.nome) + ' ' + t.ini + '–' + t.fim; }).join(' · ').replace(/(\d{1,2}:\d{2})–/g, function (m, a, o, s) { return m; }) + ' · · folga · fér férias. A última coluna conta quantos turnos cada pessoa faz no período.</p>';
+  if (r.transicoesProibidas.length) html += '<details class="legenda"><summary>Por que alguns turnos não podem vir em seguida (descanso mínimo)</summary><ul>' + r.transicoesProibidas.map(function (t) { return '<li>' + esc(t.texto) + '</li>'; }).join('') + '</ul><p class="mut">O gerador só encaixa essas trocas com uma folga no meio. Para trocar de turno sem folga, avance sempre no sentido manhã → tarde → noite.</p></details>';
+  html += '<p class="mut">Ferramenta de apoio. Confira acordo/convenção coletiva (turnos de revezamento têm regras próprias) antes de aplicar.</p>';
+  el('turRes').innerHTML = html;
+}
+function turCsv() {
+  var U = TUR.ultimo; if (!U) { el('turRes').innerHTML = '<p class="mut">Gere a escala primeiro.</p>'; return; }
+  var r = U.r, nomes = {}, funcoes = {}; U.gente.concat(r.virtuais).forEach(function (g) { nomes[g.id] = g.nome; funcoes[g.id] = g.funcao; });
+  var tn = {}; r.turnos.forEach(function (t) { tn[t.id] = t.nome + ' ' + t.ini + '-' + t.fim; });
+  var linhas = [['Colaborador(a)', 'Função'].concat(r.dias.map(function (iso) { return dataBR(iso).slice(0, 5); }))];
+  Object.keys(r.grade).forEach(function (id) { linhas.push([nomes[id] || id, funcoes[id] || ''].concat(r.grade[id].map(function (c) { return c === 'F' ? 'Folga' : (c === 'X' ? 'Férias' : (tn[c] || c)); }))); });
+  var csv = '﻿' + linhas.map(function (l) { return l.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'escala-turnos.csv'; a.click();
+}
+
 function preencherFerias() {
   el('ferPessoa').innerHTML = [].slice.call(document.querySelectorAll('#escPessoas input')).map(function (x) { return '<option value="' + esc(x.dataset.id) + '">' + esc(x.dataset.nome) + '</option>'; }).join('');
   if (!el('ferIni').value) el('ferIni').value = isoMais(el('escInicio').value || '2026-12-14', 0);
