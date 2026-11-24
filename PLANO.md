@@ -4,6 +4,7 @@
 
 ## Estado (24/11/2026)
 - ✅ **No ar (main / GitHub Pages):** app instalável (PWA), convite de instalação ao abrir o link, câmera guiada (luz, posição, foco, prova de vida por giro de cabeça, cadastro em 3 ângulos, média de amostras), modelos aquecidos após o login, comprovante tipo recibo.
+- ✅ **Demo "Escala 5x2" (Admin → aba Escala 5x2):** diagnóstico da rotina real pelas batidas (EC 141/2026: 42 h e 2 folgas a partir de 15/12/2026; 40 h a partir de 16/12/2027), sugestão de escala com rodízio de folgas, cobertura mínima por dia, CSV e impressão. Tudo no front, sem mexer no servidor. Próximo: alertas de conformidade no fechamento + regras em `regras/trabalhistas.json` com vigia de novas portarias.
 - ⏳ **Teste em celular real** com a Luciana Noivas (cliente nº 1): manhã de 25/11.
 - ⛔ **Backend (Apps Script) ainda fora do repositório.** É a 1ª tarefa da tarde (Etapa 1).
 

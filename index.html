@@ -213,6 +213,16 @@
   #ptr.pronto::before { border-color:var(--vinho); border-top-color:var(--vinho-claro); }
   #ptr.gira::before { animation:gira .7s linear infinite; }
   #ptr span { position:absolute; top:52px; white-space:nowrap; font-size:12px; font-weight:600; color:var(--vinho); background:#fff; padding:3px 10px; border-radius:999px; box-shadow:var(--sombra); }
+  /* Escala 5x2 */
+  table.esc td, table.esc th { text-align:center; font-size:12.5px; padding:6px 4px; }
+  table.esc td:first-child, table.esc th:first-child { text-align:left; }
+  table.esc td.fo { background:var(--vinho-claro); color:var(--vinho); font-weight:600; }
+  table.esc td.fe { background:#f3f3f3; color:#aaa; }
+  table.esc tr.cob td { border-top:2px solid var(--bd); font-weight:600; }
+  table.esc .falta { color:var(--err); } table.esc .sobra { color:var(--ok); }
+  #escDias input { width:78px; padding:6px 8px; font-size:14px; } #escDias input[type=checkbox] { width:18px; }
+  .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  @media print { header, #aTabs, #escParams, .filtro, .instalar { display:none !important; } .card { box-shadow:none; border:0; } }
 </style>
 </head>
 <body>
@@ -340,6 +350,7 @@
     <button data-t="espelho">Espelho</button>
     <button data-t="ajuste">Ajustes</button>
     <button data-t="recusadas">Recusadas</button>
+    <button data-t="escala">Escala 5x2 <span class="badge">novo</span></button>
     <button data-t="loja">Loja</button>
     <button data-t="regras">Regras</button>
     <button data-t="tipos">Tipos de ajuste</button>
@@ -484,6 +495,22 @@
     <div class="kpis" id="fKpis"></div>
     <p class="mut">Clique no <b>+</b> para ver os dias do colaborador. Dias com <span class="tag-al">alerta</span> são oportunidades de ajuste.</p>
     <div class="scroll"><table id="fTab" class="fech"></table></div>
+  </div>
+
+  <div class="card at hide" id="at-escala">
+    <div class="topo-filtro"><h2>Escala 5x2 · fim da 6x1</h2>
+      <div class="filtro"><button class="btn sec peq" onclick="baixarEscalaCsv()">⤓ Planilha (CSV)</button><button class="btn sec peq" onclick="window.print()">⎙ Imprimir</button></div></div>
+    <div class="explica">A <b>Emenda Constitucional 141/2026</b> acaba com a escala 6x1. A partir de <b>15/12/2026</b>: no máximo <b>42 h por semana</b> e <b>2 folgas</b> semanais (de preferência no domingo). A partir de <b>16/12/2027</b>: <b>40 h</b>, até 8 h por dia, em 5 dias.</div>
+    <div id="escDiag"><p class="mut">Analisando as batidas reais dos últimos meses...</p></div>
+    <details class="legenda" id="escParams" open><summary>Funcionamento da loja e equipe (preenchido a partir das batidas, pode ajustar)</summary>
+      <div class="scroll"><table id="escDias"></table></div>
+      <label>Equipe na escala</label><div class="chk" id="escPessoas"></div>
+      <div class="linha"><div><label>Limite semanal</label><select id="escLimite"><option value="42">42 h (de 15/12/2026 a 15/12/2027)</option><option value="40">40 h (a partir de 16/12/2027)</option></select></div>
+        <div><label>Semanas</label><select id="escSemanas"><option>4</option><option>6</option><option>8</option></select></div></div>
+      <button class="btn" onclick="gerarEscala()">Gerar escala sugerida</button>
+    </details>
+    <div id="escRes"></div>
+    <p class="mut" style="margin-top:14px">Sugestão automática para apoiar a decisão. Confira convenção coletiva da categoria e oriente-se com o contador ou advogado trabalhista antes de aplicar.</p>
   </div>
 
   <div class="card at hide" id="at-loja">
@@ -1121,6 +1148,7 @@ document.querySelectorAll('#aTabs button').forEach(function (b) {
     if (b.dataset.t === 'tratamento') carregarSolicitacoes();
     if (b.dataset.t === 'aovivo') carregarAoVivo();
     if (b.dataset.t === 'fechamento') carregarFechamento();
+    if (b.dataset.t === 'escala') carregarEscala();
   };
 });
 
@@ -1626,6 +1654,219 @@ function salvarLoja() {
     lat: nBR(el('oLat').value), lng: nBR(el('oLng').value), raio: el('oRaio').value })
     .then(function (d) { carregando(); S.admin = d; msg('aMsg', 'Loja salva.', true); })
     .catch(function (e) { carregando(); msg('aMsg', e.message); });
+}
+
+// ---------- Escala 5x2 (fim da 6x1 · EC 141/2026) ----------
+var ESC = { real: null, ultima: null };
+var DIAS_SEM = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+function minDe(t) { var m = /^(-?)(\d{1,3}):(\d{2})/.exec(String(t || '').trim()); return m ? (m[1] ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : null; }
+function hhmm(m) { m = Math.round(m); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+function hNum(m) { return (Math.round(m / 6) / 10).toString().replace('.', ','); }
+function diaSem(iso) { var d = new Date(iso + 'T12:00:00'); return (d.getDay() + 6) % 7; }   // 0 = segunda
+function segundaDe(iso) { var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - diaSem(iso)); return d.toISOString().slice(0, 10); }
+function mediana(a) { if (!a.length) return null; a = a.slice().sort(function (x, y) { return x - y; }); return a[Math.floor(a.length / 2)]; }
+function mesMenos(m, n) { var d = new Date(m + '-15T12:00:00'); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 7); }
+
+function carregarEscala() {
+  if (ESC.real) return;
+  var m = mesAtual();
+  Promise.all([mesMenos(m, 1), m].map(function (mm) { return api('apiAdminFechamentoTela', S.token, mm).catch(function () { return { lista: [] }; }); }))
+    .then(function (rr) { ESC.real = analisarReal(rr); pintarDiagnostico(); preencherParametros(); gerarEscala(); })
+    .catch(function (e) { el('escDiag').innerHTML = '<p class="msg err" style="display:block">' + esc(e.message) + '</p>'; });
+}
+
+/** Lê o fechamento (2 meses) e descobre a rotina real: dias por semana, horas, horário e equipe por dia da semana. */
+function analisarReal(resps) {
+  var hoje = hojeIso(), pessoas = {}, porDia = {};
+  resps.forEach(function (r) {
+    (r.lista || []).forEach(function (c) {
+      var p = pessoas[c.id] || (pessoas[c.id] = { id: c.id, nome: c.nome, dias: {} });
+      (c.dias || []).forEach(function (d) {
+        if (!d.iso || d.iso >= hoje) return;
+        var ent = minDe(d.entrada), sai = minDe(d.saida), h = minDe(d.horas);
+        if ((h === null || h <= 0) && ent !== null && sai !== null && sai > ent) h = sai - ent;
+        if (!h || h <= 0) return;
+        p.dias[d.iso] = { h: h, ent: ent, sai: sai };
+        var k = porDia[d.iso] || (porDia[d.iso] = { n: 0, ent: [], sai: [] });
+        k.n++; if (ent !== null) k.ent.push(ent); if (sai !== null) k.sai.push(sai);
+      });
+    });
+  });
+  // semanas completas (segunda a domingo) já encerradas
+  var semanas = {};
+  Object.keys(porDia).forEach(function (iso) { semanas[segundaDe(iso)] = 1; });
+  var fimUltima = segundaDe(hoje);
+  var lista = Object.keys(semanas).filter(function (s) { return s < fimUltima; }).sort();
+  if (lista.length > 1) lista = lista.slice(1);   // a 1ª pode estar incompleta (começo do mês)
+  var res = { semanas: lista, pessoas: [], dia: [] };
+  Object.keys(pessoas).forEach(function (id) {
+    var p = pessoas[id], sem = [];
+    lista.forEach(function (s) {
+      var dias = 0, min = 0, domingo = false, d0 = new Date(s + 'T12:00:00');
+      for (var i = 0; i < 7; i++) {
+        var iso = new Date(d0.getTime() + i * 864e5).toISOString().slice(0, 10), x = p.dias[iso];
+        if (x) { dias++; min += x.h; if (i === 6) domingo = true; }
+      }
+      if (dias) sem.push({ semana: s, dias: dias, min: min, domingo: domingo });
+    });
+    if (!sem.length) return;
+    res.pessoas.push({ id: id, nome: p.nome, sem: sem,
+      diasMed: sem.reduce(function (a, x) { return a + x.dias; }, 0) / sem.length,
+      minMed: sem.reduce(function (a, x) { return a + x.min; }, 0) / sem.length,
+      diasMax: Math.max.apply(null, sem.map(function (x) { return x.dias; })),
+      minMax: Math.max.apply(null, sem.map(function (x) { return x.min; })) });
+  });
+  res.pessoas.sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+  for (var w = 0; w < 7; w++) {
+    var isos = Object.keys(porDia).filter(function (iso) { return diaSem(iso) === w && lista.indexOf(segundaDe(iso)) >= 0; });
+    var ns = isos.map(function (iso) { return porDia[iso].n; }), ent = [], sai = [];
+    isos.forEach(function (iso) { ent = ent.concat(porDia[iso].ent); sai = sai.concat(porDia[iso].sai); });
+    res.dia.push({ aberto: isos.length > 0, media: ns.length ? ns.reduce(function (a, b) { return a + b; }, 0) / ns.length : 0,
+      ini: mediana(ent), fim: mediana(sai) });
+  }
+  return res;
+}
+
+function pintarDiagnostico() {
+  var r = ESC.real, ps = r.pessoas;
+  if (!ps.length) { el('escDiag').innerHTML = '<p class="mut">Sem batidas suficientes nos últimos 2 meses para o diagnóstico. Preencha o funcionamento abaixo.</p>'; return; }
+  var irreg = ps.filter(function (p) { return p.diasMax > 5 || p.minMax > 42 * 60; });
+  var diasMed = ps.reduce(function (a, p) { return a + p.diasMed; }, 0) / ps.length;
+  var hMed = ps.reduce(function (a, p) { return a + p.minMed; }, 0) / ps.length;
+  var cor = irreg.length ? 'var(--err)' : 'var(--ok)';
+  el('escDiag').innerHTML =
+    '<div class="kpis">' +
+      '<div class="kpi"><b style="color:' + cor + '">' + irreg.length + ' de ' + ps.length + '</b><span>fora da nova regra a partir de 15/12</span></div>' +
+      '<div class="kpi"><b>' + diasMed.toFixed(1).replace('.', ',') + '</b><span>dias trabalhados por semana (média)</span></div>' +
+      '<div class="kpi"><b>' + hNum(hMed) + ' h</b><span>por semana por pessoa (média)</span></div>' +
+      '<div class="kpi"><b>' + r.semanas.length + '</b><span>semanas analisadas</span></div></div>' +
+    '<details class="legenda"><summary>Ver por colaborador(a)</summary><div class="scroll"><table><tr><th>Colaborador(a)</th><th>Dias/semana</th><th>Horas/semana (média)</th><th>Pior semana</th><th>Situação em 15/12</th></tr>' +
+    ps.map(function (p) {
+      var m = []; if (p.diasMax > 5) m.push(p.diasMax + ' dias (máx. 5)'); if (p.minMax > 42 * 60) m.push(hNum(p.minMax) + ' h (máx. 42)');
+      return '<tr><td>' + esc(p.nome) + '</td><td>' + p.diasMed.toFixed(1).replace('.', ',') + '</td><td>' + hNum(p.minMed) + ' h</td><td>' + hNum(p.minMax) + ' h · ' + p.diasMax + ' dias</td><td>' +
+        (m.length ? '<span class="semaforo" style="background:var(--err)"></span><span class="neg">' + m.join(' · ') + '</span>' : '<span class="semaforo" style="background:var(--ok)"></span>Ok') + '</td></tr>';
+    }).join('') + '</table></div></details>';
+}
+
+function preencherParametros() {
+  var r = ESC.real, padrao = [[480, 1020], [480, 1020], [480, 1020], [480, 1020], [480, 1020], [540, 840], [null, null]];
+  el('escDias').innerHTML = '<tr><th>Dia</th><th>Abre?</th><th>Abre às</th><th>Fecha às</th><th>Mínimo de pessoas</th><th class="mut">Hoje (média)</th></tr>' +
+    DIAS_SEM.map(function (n, i) {
+      var d = r.dia[i] || {}, temDados = r.pessoas.length > 0;
+      var aberto = temDados ? d.aberto : padrao[i][0] !== null;
+      var ini = d.ini !== null && d.ini !== undefined ? d.ini : padrao[i][0], fim = d.fim !== null && d.fim !== undefined ? d.fim : padrao[i][1];
+      if (ini !== null) ini = Math.round(ini / 30) * 30; if (fim !== null) fim = Math.round(fim / 30) * 30;
+      var minimo = aberto ? Math.max(1, Math.round((d.media || 2) * 0.75)) : 0;
+      return '<tr><td><b>' + n + '</b></td><td><input type="checkbox" id="escA' + i + '"' + (aberto ? ' checked' : '') + '></td>' +
+        '<td><input id="escI' + i + '" value="' + (ini !== null ? hhmm(ini) : '08:00') + '"></td><td><input id="escF' + i + '" value="' + (fim !== null ? hhmm(fim) : '17:00') + '"></td>' +
+        '<td><input id="escM' + i + '" inputmode="numeric" value="' + minimo + '"></td><td class="mut">' + (d.media ? d.media.toFixed(1).replace('.', ',') : '–') + '</td></tr>';
+    }).join('');
+  var comPonto = {}; r.pessoas.forEach(function (p) { comPonto[p.id] = 1; });
+  var gente = (S.admin ? colabsPonto() : []).filter(function (c) { return c.ativo; });
+  if (!gente.length) gente = r.pessoas;
+  el('escPessoas').innerHTML = gente.map(function (c) {
+    var marcar = !r.pessoas.length || comPonto[c.id];
+    return '<label><input type="checkbox" data-id="' + esc(c.id) + '" data-nome="' + esc(c.nome) + '"' + (marcar ? ' checked' : '') + '> ' + esc(c.nome) + '</label>';
+  }).join('');
+}
+
+/** Monta a escala 5x2: folgas em rodízio, cobertura mínima por dia, limite semanal e domingo (1 a cada 3 semanas). */
+function gerarEscala() {
+  var dias = DIAS_SEM.map(function (n, i) {
+    var a = el('escA' + i).checked, ini = minDe(el('escI' + i).value), fim = minDe(el('escF' + i).value);
+    var dur = a && ini !== null && fim !== null && fim > ini ? fim - ini : 0;
+    var almoco = dur > 360 ? 60 : (dur > 240 ? 15 : 0);
+    return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0),
+      trab: Math.min(480, Math.max(0, dur - almoco)), almoco: almoco, longo: dur - almoco > 480 };
+  });
+  var pessoas = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) { return { id: x.dataset.id, nome: x.dataset.nome, domFolga: 99 }; });
+  var limite = Number(el('escLimite').value) * 60, nSem = Number(el('escSemanas').value);
+  if (!pessoas.length) { el('escRes').innerHTML = '<p class="msg err" style="display:block">Marque pelo menos uma pessoa.</p>'; return; }
+  var abertos = dias.map(function (d, i) { return d.aberto ? i : -1; }).filter(function (i) { return i >= 0; });
+  var inicio = new Date('2026-12-14T12:00:00');   // segunda-feira da semana em que a regra começa
+  var semanas = [];
+  for (var w = 0; w < nSem; w++) {
+    var equipe = dias.map(function (d) { return d.aberto ? pessoas.length : 0; });
+    var grade = pessoas.map(function () { return dias.map(function (d) { return d.aberto ? 'T' : 'F'; }); });
+    var ordem = pessoas.map(function (p, i) { return i; });
+    ordem = ordem.slice(w % ordem.length).concat(ordem.slice(0, w % ordem.length));   // rodízio de quem escolhe primeiro
+    ordem.forEach(function (pi, k) {
+      var g = grade[pi], p = pessoas[pi];
+      function folgas() { return g.filter(function (x) { return x === 'F'; }).length; }
+      function minutos() { return g.reduce(function (a, x, i) { return a + (x === 'T' ? dias[i].trab : 0); }, 0); }
+      // domingo aberto: garante folga no domingo pelo menos 1 vez a cada 3 semanas
+      if (dias[6].aberto && p.domFolga >= 2) { g[6] = 'F'; equipe[6]--; }
+      var pref = abertos.length ? abertos[(pi + w) % abertos.length] : -1;
+      while ((folgas() < 2 || minutos() > limite) && g.some(function (x) { return x === 'T'; })) {
+        var melhor = -1, nota = -1e9;
+        g.forEach(function (x, i) {
+          if (x !== 'T') return;
+          var n = (equipe[i] - dias[i].min) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0) - (i === 6 ? 0 : 0);
+          if (n > nota) { nota = n; melhor = i; }
+        });
+        g[melhor] = 'F'; equipe[melhor]--;
+      }
+      p.domFolga = g[6] === 'F' || !dias[6].aberto ? 0 : p.domFolga + 1;
+    });
+    var dt = new Date(inicio.getTime() + w * 7 * 864e5);
+    semanas.push({ inicio: dt, grade: grade, equipe: equipe });
+  }
+  ESC.ultima = { dias: dias, pessoas: pessoas, semanas: semanas, limite: limite };
+  pintarEscala();
+}
+
+function pintarEscala() {
+  var e = ESC.ultima, dias = e.dias, r = ESC.real || { pessoas: [] };
+  var totalAntes = r.pessoas.reduce(function (a, p) { return a + p.minMed; }, 0);
+  var totalDepois = 0, faltas = 0, maxH = 0, minH = 1e9;
+  e.semanas.forEach(function (s, w) {
+    s.min = s.grade.map(function (g) { return g.reduce(function (a, x, i) { return a + (x === 'T' ? dias[i].trab : 0); }, 0); });
+    if (w === 0) totalDepois = s.min.reduce(function (a, b) { return a + b; }, 0);
+    s.min.forEach(function (m) { maxH = Math.max(maxH, m); minH = Math.min(minH, m); });
+    dias.forEach(function (d, i) { if (d.aberto && s.equipe[i] < d.min) faltas++; });
+  });
+  var avisos = [];
+  dias.forEach(function (d) { if (d.longo) avisos.push(d.nome + ': a loja fica aberta mais de 8 h + almoço; uma pessoa não cobre o dia todo. Use 2 turnos ou ajuste o horário.'); });
+  if (faltas) avisos.push('Em ' + faltas + ' dia(s) a equipe fica abaixo do mínimo pedido. Opções: reduzir o mínimo, contratar ou usar meio período.');
+  var antes = r.pessoas.length ? '<div class="kpi"><b>' + hNum(totalAntes) + ' h</b><span>horas da equipe por semana hoje</span></div>' : '';
+  var dif = r.pessoas.length && totalAntes ? Math.round((totalDepois - totalAntes) / totalAntes * 100) : null;
+  var html = '<h2 style="margin-top:18px">Escala sugerida</h2><div class="kpis">' + antes +
+    '<div class="kpi"><b>' + hNum(totalDepois) + ' h</b><span>horas da equipe por semana na proposta' + (dif !== null ? ' (' + (dif > 0 ? '+' : '') + dif + '%)' : '') + '</span></div>' +
+    '<div class="kpi"><b>5x2</b><span>todos com 2 folgas por semana</span></div>' +
+    '<div class="kpi"><b>' + hNum(minH) + '–' + hNum(maxH) + ' h</b><span>por pessoa (limite ' + hNum(e.limite) + ' h)</span></div>' +
+    '<div class="kpi"><b style="color:' + (faltas ? 'var(--err)' : 'var(--ok)') + '">' + (faltas ? faltas + ' dia(s)' : 'Ok') + '</b><span>cobertura mínima</span></div></div>' +
+    (avisos.length ? '<div class="explica"><b>Atenção:</b><ul style="margin:6px 0 0;padding-left:20px">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul></div>' : '');
+  e.semanas.forEach(function (s, w) {
+    var fimS = new Date(s.inicio.getTime() + 6 * 864e5), fmt = function (d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); };
+    html += '<h3 style="margin:16px 0 6px;color:var(--vinho)">Semana ' + (w + 1) + ' · ' + fmt(s.inicio) + ' a ' + fmt(fimS) + '</h3><div class="scroll"><table class="esc"><tr><th>Colaborador(a)</th>' +
+      dias.map(function (d) { return '<th>' + d.nome + '</th>'; }).join('') + '<th>Horas</th></tr>' +
+      e.pessoas.map(function (p, pi) {
+        return '<tr><td>' + esc(p.nome) + '</td>' + s.grade[pi].map(function (x, i) {
+          if (!dias[i].aberto) return '<td class="fe">fechado</td>';
+          return x === 'T' ? '<td>' + hhmm(dias[i].ini) + '–' + hhmm(dias[i].fim) + '</td>' : '<td class="fo">Folga</td>';
+        }).join('') + '<td class="' + (s.min[pi] > e.limite ? 'neg' : '') + '">' + hNum(s.min[pi]) + ' h</td></tr>';
+      }).join('') +
+      '<tr class="cob"><td>Na loja / mínimo</td>' + dias.map(function (d, i) {
+        if (!d.aberto) return '<td class="fe">–</td>';
+        return '<td class="' + (s.equipe[i] < d.min ? 'falta' : 'sobra') + '">' + s.equipe[i] + '/' + d.min + '</td>';
+      }).join('') + '<td></td></tr></table></div>';
+  });
+  el('escRes').innerHTML = html;
+}
+
+function baixarEscalaCsv() {
+  var e = ESC.ultima; if (!e) return;
+  var linhas = [['Semana', 'Colaborador(a)'].concat(DIAS_SEM).concat(['Horas'])];
+  e.semanas.forEach(function (s, w) {
+    e.pessoas.forEach(function (p, pi) {
+      linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome].concat(s.grade[pi].map(function (x, i) {
+        return !e.dias[i].aberto ? 'fechado' : (x === 'T' ? hhmm(e.dias[i].ini) + '-' + hhmm(e.dias[i].fim) : 'Folga');
+      })).concat([hNum(s.min[pi])]));
+    });
+  });
+  var csv = '﻿' + linhas.map(function (l) { return l.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'escala-5x2.csv'; a.click();
 }
 
 // ---------- App instalável (PWA) ----------
