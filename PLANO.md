@@ -5,6 +5,7 @@
 ## Estado (24/11/2026)
 - ✅ **No ar (main / GitHub Pages):** app instalável (PWA), convite de instalação ao abrir o link, câmera guiada (luz, posição, foco, prova de vida por giro de cabeça, cadastro em 3 ângulos, média de amostras), modelos aquecidos após o login, comprovante tipo recibo.
 - ✅ **"Escala 5x2" interativa (Admin → aba Escala 5x2):** começa pela rotina real, o gestor monta clicando (dia inteiro / folga / meio período) e as irregularidades aparecem na hora; diagnóstico pelas batidas (EC 141/2026: 42 h e 2 folgas a partir de 15/12/2026; 40 h a partir de 16/12/2027), sugestão de escala com rodízio de folgas, cobertura mínima por dia, CSV e impressão. Tudo no front, sem mexer no servidor. Próximo: alertas de conformidade no fechamento + regras em `regras/trabalhistas.json` com vigia de novas portarias.
+- ✅ **Férias na aba Escala 5x2:** calendário mensal, regras da CLT (art. 134: até 3 períodos, um ≥14 dias, demais ≥5, não começar nos 2 dias antes de domingo/feriado), aviso de função sem cobertura, "Sugerir data" e escala que já considera quem está de férias. **Hoje salvo no aparelho** → levar para uma aba `Ferias` na planilha quando o Apps Script estiver no repositório.
 - ⏳ **Teste em celular real** com a Luciana Noivas (cliente nº 1): manhã de 25/11.
 - ⛔ **Backend (Apps Script) ainda fora do repositório.** É a 1ª tarefa da tarde (Etapa 1).
 
