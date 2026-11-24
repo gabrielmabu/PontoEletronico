@@ -39,7 +39,7 @@ const servidor = {
   ContentService: { createTextOutput: s => ({ txt: s, setMimeType() { return this; } }), MimeType: { JSON: 'json' } }
 };
 vm.createContext(servidor);
-['Util.gs', 'Auth.gs', 'Clientes.gs', 'Contatos.gs', 'Api.gs'].forEach(f => vm.runInContext(fs.readFileSync(SRC + f, 'utf8'), servidor, { filename: f }));
+['Util.gs', 'Auth.gs', 'Clientes.gs', 'Contatos.gs', 'Marca.gs', 'Api.gs'].forEach(f => vm.runInContext(fs.readFileSync(SRC + f, 'utf8'), servidor, { filename: f }));
 const postServidor = body => vm.runInContext('doPost({ postData: { contents: ' + JSON.stringify(body) + ' } })', servidor).txt;
 
 // ---- Google simulado (serviço Drive embutido do Apps Script) e o instalador; o navegador é imitado em fluxo()

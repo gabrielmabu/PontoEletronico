@@ -108,6 +108,19 @@
   .cam-aviso { font:600 22px var(--serif); margin-top:14px; text-align:center; }
   .cam-status { font-size:14px; opacity:.8; margin-top:4px; text-align:center; min-height:20px; }
   body.tela-admin main { max-width:1120px; }
+  .mk-prev { display:flex; gap:12px; align-items:center; background:var(--vinho); color:#fff; border-radius:14px; padding:12px 14px; margin:8px 0; }
+  .mk-prev img { height:46px; max-width:140px; object-fit:contain; background:#fff; border-radius:10px; padding:4px; }
+  .mk-prev b { font-family:var(--serif); font-size:21px; display:block; line-height:1.1; } .mk-prev span { font-size:13px; opacity:.9; }
+  .mk-prev .bt { margin-left:auto; background:var(--vinho2); padding:6px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  input[type=color] { height:44px; padding:3px; }
+  #tour { position:fixed; inset:0; z-index:60; background:rgba(20,8,12,.45); display:flex; align-items:flex-end; justify-content:center; padding:16px; }
+  #tour .tc { background:#fff; border-radius:18px; max-width:460px; width:100%; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,.25); }
+  #tour h3 { margin:0 0 6px; font:600 22px var(--serif); color:var(--vinho); } #tour p { margin:0 0 10px; font-size:14.5px; }
+  #tour .pts { display:flex; gap:6px; margin:4px 0 12px; } #tour .pts i { width:8px; height:8px; border-radius:50%; background:var(--bd); } #tour .pts i.on { background:var(--vinho); }
+  #tour .acoes { display:flex; gap:8px; justify-content:flex-end; align-items:center; } #tour .acoes .lk { margin-right:auto; }
+  #tour code { background:var(--vinho-claro); padding:2px 6px; border-radius:6px; word-break:break-all; }
+  @media (min-width:900px) { #tour { align-items:center; } }
+  body:not(.tela-admin) #bTour { display:none; }
   /* Computador: menu lateral retrátil com ícones (celular continua com as abas em pílulas) */
   #aTabs .ic, #menuToggle { display:none; }
   @media (min-width:900px) {
@@ -327,7 +340,7 @@
 </style>
 </head>
 <body>
-<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bAtualizar" onclick="atualizarApp()" title="Atualizar (F5)">⟳ Atualizar</button> <button id="bInstalar" class="hide" onclick="instalarApp()">📲 Instalar</button> <button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
+<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bAtualizar" onclick="atualizarApp()" title="Atualizar (F5)">⟳ Atualizar</button> <button id="bInstalar" class="hide" onclick="instalarApp()">📲 Instalar</button> <button id="bTour" onclick="iniciarTour(true)" title="Rever o tour">❔ Tour</button> <button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
 <main>
 
 <!-- LOGIN -->
@@ -459,6 +472,7 @@
     <button data-s="regras">Regras e jornada</button>
     <button data-s="tipos">Tipos de ajuste</button>
     <button data-s="loja">Loja</button>
+    <button data-s="marca">Marca</button>
   </div>
   <div id="aMsg" class="msg"></div>
 
@@ -660,6 +674,19 @@
     <p class="mut" style="margin-top:14px">Ferramenta de apoio ao planejamento. Confira convenção coletiva da categoria e oriente-se com o contador ou advogado trabalhista antes de aplicar.</p>
   </div>
 
+  <div class="card at hide" id="at-marca">
+    <h2>Marca da empresa</h2>
+    <p class="mut">Logo, cores e fontes do app. Vale para todos os celulares da empresa (cada um atualiza ao abrir o app).</p>
+    <div class="mk-prev"><img id="mkLogo" alt="" style="display:none"><div><b id="mkNome">Sua empresa</b><span>Registro de ponto</span></div><span class="bt">Entrar</span></div>
+    <label>Logo</label><input type="file" id="mkArq" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="mkLerLogo(this)">
+    <p class="mut" id="mkInfo" style="margin:4px 0">PNG com fundo transparente fica melhor. <span class="lk" onclick="mkTirarLogo()">remover logo</span> · <span class="lk" onclick="mkSugerir()">sugerir cores pela logo</span></p>
+    <div class="linha"><div><label>Cor principal</label><input type="color" id="mkCor" oninput="mkMudou()"></div><div><label>Cor de destaque</label><input type="color" id="mkCor2" oninput="mkMudou()"></div></div>
+    <p class="mut" id="mkContraste"></p>
+    <div class="linha"><div><label>Fonte dos títulos</label><select id="mkFT" onchange="mkMudou()"></select></div><div><label>Fonte do texto</label><select id="mkF" onchange="mkMudou()"></select></div></div>
+    <button class="btn" onclick="mkSalvar()">Salvar marca</button>
+    <button class="btn sec" onclick="mkPadrao()">Voltar ao padrão</button>
+  </div>
+
   <div class="card at hide" id="at-loja">
     <h2>Loja</h2>
     <input type="hidden" id="oId">
@@ -703,6 +730,7 @@
 <div id="load" class="carregando hide"><div id="loadTxt">Carregando...</div></div>
 
 <script src="escala-turnos.js"></script>
+<script src="marca-util.js"></script>
 <script>
 var MODELOS = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
 var LIB = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js';
@@ -756,7 +784,7 @@ function ir(tela) {
   el('bAdm').classList.toggle('hide', !(logado && S.usuario && S.usuario.perfil === 'ADMIN' && S.usuario.login !== 'admin' && tela !== 'admin'));
   if (tela === 'ponto') carregarEstado();
   if (tela === 'historico') { if (!el('hMes').value) el('hMes').value = mesAtual(); carregarHistorico(); }
-  if (tela === 'admin') carregarAdmin();
+  if (tela === 'admin') { carregarAdmin(); if (CLIENTE && !ler('tourAdmin')) setTimeout(function () { iniciarTour(false); }, 900); }
   window.scrollTo(0, 0);
 }
 
@@ -1304,6 +1332,7 @@ function mostrarConfig(sub) {
   document.querySelectorAll('.at').forEach(function (s) { s.classList.toggle('hide', s.id !== 'at-' + cfgAtual); });
   if (cfgAtual === 'regras') carregarRegras();
   if (cfgAtual === 'tipos') carregarTipos();
+  if (cfgAtual === 'marca') mkCarregar();
 }
 document.querySelectorAll('#cfgTabs button').forEach(function (b) { b.onclick = function () { msg('aMsg'); mostrarConfig(b.dataset.s); }; });
 (function () {
@@ -2982,7 +3011,7 @@ setTimeout(tirarSplash, 4000);   // nunca prende a tela
 function aplicarMarca(m) {
   var nome = (m && m.empresa) || 'Ponto';
   document.title = 'Ponto · ' + nome;
-  [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img'), function (i) { i.src = 'icons/neutro-192.png'; i.alt = nome; });
+  [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img, #folha .topo img'), function (i) { i.src = 'icons/neutro-192.png'; i.alt = nome; });
   var lg = document.querySelector('.login-logo'); if (lg) { lg.style.width = '96px'; lg.style.borderRadius = '22px'; lg.style.margin = '0 auto 10px'; }
   var t = el('tit'); if (t) t.textContent = nome;
   var ap = document.querySelector('link[rel="apple-touch-icon"]'); if (ap) ap.href = 'icons/neutro-180.png';
@@ -2998,7 +3027,91 @@ function aplicarMarca(m) {
     if (lk) lk.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' }));
   } catch (e) {}
 }
-if (CLIENTE) api('apiMarca').then(aplicarMarca).catch(function (e) { var m = el('lMsg'); if (m) msg('lMsg', e.message); });
+/** Logo, cores e fontes da empresa (qualquer cliente que tenha escolhido). */
+var MARCA = null;
+function aplicarVisual(m) {
+  MARCA = m || {};
+  if (!window.MarcaUtil || !MarcaUtil.personalizada(m)) return;
+  MarcaUtil.aplicar(m);
+  if (m.logo) [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img, #folha .topo img'), function (i) { i.src = m.logo; });
+  var lg = document.querySelector('.login-logo');
+  if (lg && m.logo) { lg.style.width = 'auto'; lg.style.maxWidth = 'min(260px, 70vw)'; lg.style.maxHeight = '120px'; lg.style.background = '#fff'; lg.style.borderRadius = '18px'; lg.style.padding = '10px'; }
+}
+try { var mc = JSON.parse(ler('marca') || 'null'); if (mc) { if (CLIENTE) aplicarMarca(mc); aplicarVisual(mc); } } catch (e) {}
+api('apiMarca').then(function (m) {
+  if (CLIENTE) aplicarMarca(m);
+  aplicarVisual(m);
+  guardar('marca', JSON.stringify(m));
+}).catch(function (e) { if (CLIENTE) msg('lMsg', e.message); });
+
+// ---------- Configurações → Marca ----------
+var MK = null;
+function mkCarregar() {
+  el('mkFT').innerHTML = MarcaUtil.FONTES_TITULO.map(function (x) { return '<option>' + x + '</option>'; }).join('');
+  el('mkF').innerHTML = MarcaUtil.FONTES_TEXTO.map(function (x) { return '<option>' + x + '</option>'; }).join('');
+  api('apiMarca').then(function (m) {
+    MK = { logo: m.logo || '', cor: m.cor || '', cor2: m.cor2 || '', fonte: m.fonte || '', fonteTitulo: m.fonteTitulo || '' };
+    el('mkNome').textContent = m.empresa || 'Sua empresa'; mkNaTela();
+  }).catch(function (e) { msg('aMsg', e.message); });
+}
+function mkNaTela() {
+  var P = MarcaUtil.PADRAO;
+  el('mkCor').value = MK.cor || P.cor; el('mkCor2').value = MK.cor2 || P.cor2; el('mkFT').value = MK.fonteTitulo || P.fonteTitulo; el('mkF').value = MK.fonte || P.fonte;
+  mkPrevia();
+}
+function mkPrevia() {
+  MarcaUtil.aplicar(MK);
+  var i = el('mkLogo'); i.src = MK.logo || ''; i.style.display = MK.logo ? 'block' : 'none';
+  el('mkContraste').textContent = MarcaUtil.contraste(MK.cor || MarcaUtil.PADRAO.cor, '#FFFFFF') < 4.5 ? '⚠️ Com essa cor principal o texto branco fica difícil de ler. Escolha um tom mais escuro.' : '';
+}
+function mkMudou() { MK.cor = el('mkCor').value.toUpperCase(); MK.cor2 = el('mkCor2').value.toUpperCase(); MK.fonteTitulo = el('mkFT').value; MK.fonte = el('mkF').value; mkPrevia(); }
+function mkLerLogo(inp) {
+  el('mkInfo').firstChild.textContent = 'Lendo a logo... ';
+  MarcaUtil.lerLogo(inp.files && inp.files[0]).then(function (u) { MK.logo = u; el('mkInfo').firstChild.textContent = 'Logo pronta (falta salvar). '; mkPrevia(); })
+    .catch(function (e) { el('mkInfo').firstChild.textContent = e.message + ' '; });
+}
+function mkTirarLogo() { MK.logo = ''; el('mkArq').value = ''; mkPrevia(); }
+function mkSugerir() {
+  if (!MK.logo) return msg('aMsg', 'Escolha a logo primeiro.');
+  MarcaUtil.sugerirCores(MK.logo).then(function (s) { MK.cor = s.cor; MK.cor2 = s.cor2; mkNaTela(); }).catch(function (e) { msg('aMsg', e.message); });
+}
+function mkPadrao() { MK = { logo: MK ? MK.logo : '', cor: '', cor2: '', fonte: '', fonteTitulo: '' }; mkNaTela(); }
+function mkSalvar() {
+  carregando('Salvando...');
+  api('apiAdminSalvarMarca', S.token, MK).then(function (m) {
+    carregando(); guardar('marca', JSON.stringify(m)); aplicarVisual(m); if (CLIENTE) aplicarMarca(m);
+    msg('aMsg', 'Marca salva. Os celulares da equipe pegam a nova marca ao abrir o app.', true); window.scrollTo(0, 0);
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); });
+}
+
+// ---------- Tour do primeiro acesso do administrador ----------
+function linkDoApp() { return location.href.split('?')[0].split('#')[0] + (CLIENTE ? '?c=' + CLIENTE : ''); }
+var TOUR = [
+  { t: 'Bem-vindo(a)!', p: function () { return 'Este é o painel de gestão do ponto' + (MARCA && MARCA.empresa ? ' da <b>' + esc(MARCA.empresa) + '</b>' : '') + '. Em 3 passos o app fica pronto para a equipe. Leva uns 5 minutos.'; } },
+  { t: '1. Marque a loja', ir: function () { document.querySelector('#aTabs button[data-t="config"]').click(); mostrarConfig('loja'); },
+    p: function () { return 'Esteja <b>dentro da loja</b> e toque em <b>Usar minha localização</b>. Depois ajuste o raio (150 m costuma ser bom) e salve. Só dá para bater ponto dentro desse raio.'; } },
+  { t: '2. Cadastre a equipe', ir: function () { document.querySelector('#aTabs button[data-t="colab"]').click(); },
+    p: function () { return 'Toque em <b>Novo colaborador</b> para cada pessoa: nome, login, cargo e salário. No 1º acesso cada um usa a <b>senha padrão</b> (está em Configurações → Regras → Senhas) e cria a própria senha.'; } },
+  { t: '3. Envie o app para a equipe', ir: function () { document.querySelector('#aTabs button[data-t="aovivo"]').click(); },
+    p: function () { return 'Mande este link no grupo da equipe:<br><code>' + esc(linkDoApp()) + '</code><br>Cada pessoa abre no celular, toca em <b>Instalar app</b> e cadastra o rosto no primeiro acesso. <span class="lk" onclick="copiarLinkApp(this)">copiar link</span>'; } },
+  { t: 'Pronto!', p: function () { return 'Acompanhe as batidas em <b>Ao vivo</b> e feche o mês em <b>Fechamento</b>. Logo, cores e fontes ficam em Configurações → <b>Marca</b>. Para ver este tour de novo, toque em <b>❔ Tour</b> no topo.'; } }
+];
+var tourPasso = 0;
+function copiarLinkApp(e) { try { navigator.clipboard.writeText(linkDoApp()); e.textContent = 'copiado!'; } catch (x) {} }
+function iniciarTour(forcar) {
+  if (!forcar && ler('tourAdmin')) return;
+  tourPasso = 0; pintarTour();
+}
+function pintarTour() {
+  var p = TOUR[tourPasso], d = el('tour');
+  if (!d) { d = document.createElement('div'); d.id = 'tour'; document.body.appendChild(d); }
+  if (p.ir) try { p.ir(); } catch (e) {}
+  d.innerHTML = '<div class="tc" role="dialog" aria-label="Tour"><h3>' + p.t + '</h3><div class="pts">' + TOUR.map(function (x, i) { return '<i class="' + (i === tourPasso ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+    '<p>' + p.p() + '</p><div class="acoes"><span class="lk" onclick="fecharTour()">' + (tourPasso === TOUR.length - 1 ? '' : 'Pular') + '</span>' +
+    (tourPasso > 0 ? '<button class="btn sec" style="width:auto;margin:0" onclick="tourPasso--;pintarTour()">Voltar</button>' : '') +
+    '<button class="btn" style="width:auto;margin:0" onclick="' + (tourPasso === TOUR.length - 1 ? 'fecharTour()' : 'tourPasso++;pintarTour()') + '">' + (tourPasso === TOUR.length - 1 ? 'Começar' : 'Próximo') + '</button></div></div>';
+}
+function fecharTour() { guardar('tourAdmin', '1'); var d = el('tour'); if (d) d.remove(); }
 
 // ---------- Início ----------
 (function () {

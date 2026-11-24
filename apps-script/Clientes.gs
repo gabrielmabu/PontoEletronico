@@ -57,7 +57,8 @@ function clientePlanilha_(id) {
 
 /** Nome e marca do cliente atual (público: usado na tela de login). */
 function apiMarca() {
-  return { cliente: _cliente || 'luciana', empresa: String(cfg_('nome_empresa', 'Ponto')) };
+  var m = marcaAtual_();
+  return { cliente: _cliente || 'luciana', empresa: String(cfg_('nome_empresa', 'Ponto')), logo: m.logo, cor: m.cor, cor2: m.cor2, fonte: m.fonte, fonteTitulo: m.fonteTitulo };
 }
 
 /** E-mail da conta que roda o servidor: o instalador compartilha a planilha e a pasta do cliente com ele. */
@@ -104,6 +105,7 @@ function apiRegistrarCliente(d) {
   if (lng !== '' && (isNaN(lng) || Math.abs(lng) > 180)) throw new Error('Longitude inválida.');
   var raio = Math.max(20, Math.min(2000, Number(d.raio) || 150));
   var origem = String(d.origem || '').toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 40);
+  var marca = validarMarca_(d.marca);   // valida antes de criar qualquer coisa
 
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(30000)) throw new Error('Muitas instalações ao mesmo tempo. Tente de novo em instantes.');
@@ -134,6 +136,7 @@ function apiRegistrarCliente(d) {
 
     _cliente = id; _ssCliente = ss; _cfgCache = null; _memo = {};
     var senhaPadrao = provisionarCliente_(ss, { empresa: empresa, pastaId: d.pastaId, senhaAdmin: senha, lat: lat, lng: lng, raio: raio, id: id });
+    gravarMarca_(marca);
     cat.getRange(linhaCat, 10).setValue('ativo');
     CacheService.getScriptCache().put('cli_' + id, d.planilhaId, 21600);
     log_('instalador', 'CLIENTE_CRIADO', id);

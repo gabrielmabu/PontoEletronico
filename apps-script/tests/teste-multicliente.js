@@ -55,7 +55,7 @@ const ctx = {
   ContentService: { createTextOutput: s => ({ txt: s, setMimeType() { return this; } }), MimeType: { JSON: 'json' } }
 };
 vm.createContext(ctx);
-['Util.gs', 'Auth.gs', 'Clientes.gs', 'Contatos.gs', 'Api.gs'].forEach(f => vm.runInContext(fs.readFileSync(SRC + f, 'utf8'), ctx, { filename: f }));
+['Util.gs', 'Auth.gs', 'Clientes.gs', 'Contatos.gs', 'Marca.gs', 'Api.gs'].forEach(f => vm.runInContext(fs.readFileSync(SRC + f, 'utf8'), ctx, { filename: f }));
 const run = s => vm.runInContext(s, ctx);
 ctx.__post = o => JSON.parse(run('doPost({ postData: { contents: ' + JSON.stringify(JSON.stringify(o)) + ' } })').txt);
 
@@ -105,6 +105,21 @@ T('cliente inexistente é recusado', /não encontrado/.test(ctx.__post({ c: 'fan
 T('marca do cliente devolve o nome da empresa', ctx.__post({ c: r1.id, fn: 'apiMarca', args: [] }).dados.empresa === 'Padaria São João');
 T('operador: e-mail da conta que roda o servidor', ctx.__post({ fn: 'apiOperadorEmail', args: [] }).dados === 'operador@exemplo.com');
 T('cliente desativado é recusado', (() => { cat.d[1][9] = 'inativo'; delete cacheMap['cli_' + r1.id]; return /não encontrado/.test(ctx.__post({ c: r1.id, fn: 'apiMarca', args: [] }).erro); })());
+
+// --- marca (logo, cores, fontes)
+const LOGO = 'data:image/png;base64,' + 'A'.repeat(400);
+reg('M'.repeat(30), 'cris@exemplo.com'); pastas['N'.repeat(30)] = { getOwner: () => ({ getEmail: () => 'cris@exemplo.com' }) };
+T('cor inválida é recusada antes de criar qualquer coisa', /Cor principal inválida/.test(bad({ empresa: 'Loja Cris', emailDono: 'cris@exemplo.com', planilhaId: 'M'.repeat(30), pastaId: 'N'.repeat(30), marca: { cor: 'vermelho' } })) && livros['M'.repeat(30)].abas.length === 1);
+T('fonte fora da lista é recusada', /Fonte do texto/.test(bad({ empresa: 'Loja Cris', emailDono: 'cris@exemplo.com', planilhaId: 'M'.repeat(30), pastaId: 'N'.repeat(30), marca: { fonte: 'Comic Sans' } })));
+T('logo que não é imagem é recusada', /Logo inválida/.test(bad({ empresa: 'Loja Cris', emailDono: 'cris@exemplo.com', planilhaId: 'M'.repeat(30), pastaId: 'N'.repeat(30), marca: { logo: 'data:text/html;base64,AAAA' } })));
+const r3 = run('apiRegistrarCliente(' + JSON.stringify(base({ empresa: 'Loja Cris', emailDono: 'cris@exemplo.com', planilhaId: 'M'.repeat(30), pastaId: 'N'.repeat(30), senhaAdmin: 'senha-cris-3', marca: { logo: LOGO, cor: '#0a7d4f', cor2: '#12a36b', fonte: 'Poppins', fonteTitulo: 'Playfair Display' } })) + ')');
+const mk = ctx.__post({ c: r3.id, fn: 'apiMarca', args: [] }).dados;
+T('marca escolhida no instalador já vem no app', mk.cor === '#0A7D4F' && mk.cor2 === '#12A36B' && mk.fonte === 'Poppins' && mk.fonteTitulo === 'Playfair Display' && mk.logo === LOGO);
+const lc = ctx.__post({ c: r3.id, fn: 'apiLogin', args: ['admin', 'senha-cris-3', false] }).dados.token;
+const mk2 = ctx.__post({ c: r3.id, fn: 'apiAdminSalvarMarca', args: [lc, { logo: '', cor: '#112233', cor2: '', fonte: '', fonteTitulo: 'Lora' }] });
+T('admin troca a marca depois (e limpa a logo)', mk2.ok && mk2.dados.cor === '#112233' && mk2.dados.logo === '' && mk2.dados.fonteTitulo === 'Lora');
+T('marca de um cliente não aparece em outro', ctx.__post({ c: r2.id, fn: 'apiMarca', args: [] }).dados.cor === '');
+T('sem login de admin não troca a marca', !ctx.__post({ c: r3.id, fn: 'apiAdminSalvarMarca', args: ['token-falso', { cor: '#000000' }] }).ok);
 
 ok.forEach(([t, v]) => console.log((v ? 'OK    ' : 'FALHA ') + t));
 process.exit(ok.every(x => x[1]) ? 0 : 1);
