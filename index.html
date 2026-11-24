@@ -244,6 +244,12 @@
   #folha .btn.sec { border:0; }
   @keyframes sobe { from { transform:translateY(100%); } to { transform:none; } }
   @keyframes fundo { from { opacity:0; } }
+  /* Botão Atualizar e aviso de versão nova */
+  #bAtualizar { display:none; }
+  @media (hover:hover) and (pointer:fine) { #bAtualizar { display:inline-block; } }
+  body.tela-login #bAtualizar { display:none; }
+  .aviso-versao { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:45; background:var(--txt); color:#fff; padding:10px 12px 10px 16px; border-radius:14px; box-shadow:0 8px 30px rgba(0,0,0,.3); display:flex; align-items:center; gap:12px; font-size:14px; animation:entra .3s ease; white-space:nowrap; }
+  .aviso-versao button { background:#fff; color:var(--vinho); border:0; border-radius:10px; padding:7px 12px; font:600 13px var(--sans); cursor:pointer; }
   /* Arrastar para atualizar */
   #ptr { position:fixed; left:50%; top:0; z-index:40; width:44px; height:44px; margin-left:-22px; border-radius:50%; background:#fff; box-shadow:0 4px 14px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; transform:translateY(-60px); opacity:0; pointer-events:none; }
   #ptr::before { content:''; width:22px; height:22px; border:3px solid var(--vinho-claro); border-top-color:var(--vinho); border-radius:50%; }
@@ -279,7 +285,7 @@
 </style>
 </head>
 <body>
-<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bInstalar" class="hide" onclick="instalarApp()">📲 Instalar</button> <button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
+<header><div class="marca"><img src="logo.jpg" alt="Luciana Noivas"><span id="tit">Ponto</span></div><nav><button id="bAtualizar" onclick="atualizarApp()" title="Atualizar (F5)">⟳ Atualizar</button> <button id="bInstalar" class="hide" onclick="instalarApp()">📲 Instalar</button> <button id="bAdm" class="hide" onclick="ir('admin')">Admin</button> <button id="bAbono" class="hide" onclick="ir('abono')">Abonos</button> <button id="bHist" class="hide" onclick="ir('historico')">Histórico</button> <button id="bSair" class="hide" onclick="sair()">Sair</button></nav></header>
 <main>
 
 <!-- LOGIN -->
@@ -2383,7 +2389,32 @@ setTimeout(function () { if (deveSugerir()) abrirFolha(); }, 1800);
   });
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // avisa quando sai versão nova (o service worker novo terminou de instalar)
+      reg.addEventListener('updatefound', function () {
+        var novo = reg.installing; if (!novo) return;
+        novo.addEventListener('statechange', function () { if (novo.state === 'installed' && navigator.serviceWorker.controller) avisoNovaVersao(); });
+      });
+      // procura versão nova ao voltar para o app e a cada 30 min
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) reg.update().catch(function () {}); });
+      setInterval(function () { reg.update().catch(function () {}); }, 30 * 60 * 1000);
+    }).catch(function () {});
+  });
+}
+/** Atualiza o app: busca a versão nova no servidor e recarrega (no computador não há o gesto de puxar). */
+function atualizarApp() {
+  var b = el('bAtualizar'); if (b) b.textContent = '⟳ Atualizando...';
+  var fim = function () { location.reload(); };
+  if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistration) {
+    navigator.serviceWorker.getRegistration().then(function (reg) { return reg ? reg.update() : null; }).then(fim, fim);
+  } else fim();
+}
+function avisoNovaVersao() {
+  if (el('avisoVersao')) return;
+  var d = document.createElement('div'); d.id = 'avisoVersao'; d.className = 'aviso-versao';
+  d.innerHTML = '✨ Nova versão do app disponível <button onclick="atualizarApp()">Atualizar agora</button>';
+  document.body.appendChild(d);
 }
 function tirarSplash() { var s = el('splash'); if (s && !s.classList.contains('sai')) { s.classList.add('sai'); setTimeout(function () { s.remove(); }, 400); } }
 setTimeout(tirarSplash, 4000);   // nunca prende a tela
