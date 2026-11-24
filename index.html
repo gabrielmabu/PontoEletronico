@@ -196,6 +196,18 @@
   .cam-modal.claro .cam-ind span.ok { background:var(--ok-bg); border-color:var(--ok); }
   .seta { display:inline-block; animation:balanca 1s ease-in-out infinite; }
   @keyframes balanca { 50% { transform:translateX(6px); } }
+  /* Convite para instalar (abre sozinho) */
+  #folha { position:fixed; inset:0; z-index:25; background:rgba(30,6,14,.5); display:flex; align-items:flex-end; justify-content:center; animation:fundo .25s ease; }
+  #folha .caixa { background:#fff; width:100%; max-width:480px; border-radius:22px 22px 0 0; padding:22px 20px calc(20px + env(safe-area-inset-bottom)); box-shadow:0 -10px 40px rgba(0,0,0,.25); animation:sobe .35s cubic-bezier(.2,.8,.2,1); }
+  #folha .topo { display:flex; gap:14px; align-items:center; }
+  #folha .topo img { width:64px; height:64px; border-radius:16px; box-shadow:var(--sombra); }
+  #folha h3 { margin:0; font:600 22px var(--serif); color:var(--vinho); }
+  #folha p { margin:4px 0 0; color:var(--mut); font-size:14px; }
+  #folha ol { margin:14px 0 0; padding-left:22px; font-size:15px; line-height:1.9; }
+  #folha .ic { display:inline-flex; vertical-align:middle; background:var(--vinho-claro); color:var(--vinho); border-radius:8px; padding:1px 8px; font-weight:600; }
+  #folha .btn.sec { border:0; }
+  @keyframes sobe { from { transform:translateY(100%); } to { transform:none; } }
+  @keyframes fundo { from { opacity:0; } }
 </style>
 </head>
 <body>
@@ -498,6 +510,14 @@
   <div class="cam-aviso" id="camAviso">Encaixe o rosto na moldura</div>
   <div class="cam-status" id="camStatus">Abrindo a câmera...</div>
   <button class="btn sec hide" id="camNativa" style="max-width:360px">Usar a câmera do celular</button>
+</div>
+<div id="folha" class="hide" onclick="if (event.target === this) fecharFolha()">
+  <div class="caixa">
+    <div class="topo"><img src="icons/icon-192.png" alt=""><div><h3>Instale o app do Ponto</h3><p>Fica na tela inicial, abre mais rápido e funciona como um aplicativo.</p></div></div>
+    <div id="folhaCorpo"></div>
+    <button class="btn" id="folhaBtn" onclick="instalarApp()">Instalar agora</button>
+    <button class="btn sec" onclick="fecharFolha()">Agora não</button>
+  </div>
 </div>
 <div id="splash"><img src="logo.jpg" alt=""></div>
 <div id="load" class="carregando hide"><div id="loadTxt">Carregando...</div></div>
@@ -1605,19 +1625,62 @@ function salvarLoja() {
 // ---------- App instalável (PWA) ----------
 var pedidoInstalar = null;
 function rodandoComoApp() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
-function ehIphone() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function ehIphone() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function ehAndroid() { return /android/i.test(navigator.userAgent); }
+/** Navegador embutido de WhatsApp, Instagram, Facebook etc.: não instala apps. */
+function navEmbutido() { return /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|LinkedInApp|TikTok|; wv\)/i.test(navigator.userAgent); }
 function mostrarInstalar(sim) { document.querySelectorAll('.instalar').forEach(function (b) { b.classList.toggle('hide', !sim); }); }
-window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); pedidoInstalar = e; mostrarInstalar(true); });
-window.addEventListener('appinstalled', function () { pedidoInstalar = null; mostrarInstalar(false); });
-function instalarApp() {
-  if (pedidoInstalar) {
-    pedidoInstalar.prompt();
-    pedidoInstalar.userChoice.then(function () { pedidoInstalar = null; mostrarInstalar(false); });
+
+function abrirFolha() {
+  if (rodandoComoApp()) return;
+  var corpo = '', btn = 'Instalar agora', acao = true;
+  if (navEmbutido()) {
+    if (ehAndroid()) {
+      corpo = '<ol><li>Este link abriu dentro de outro aplicativo.</li><li>Toque em <b>Abrir no Chrome</b> e instale por lá.</li></ol>';
+      btn = 'Abrir no Chrome';
+    } else {
+      corpo = '<ol><li>Este link abriu dentro de outro aplicativo.</li><li>Toque em <span class="ic">⋯</span> ou <span class="ic">↗</span> e escolha <b>Abrir no Safari</b>.</li><li>No Safari, siga as instruções para instalar.</li></ol>';
+      acao = false;
+    }
   } else if (ehIphone()) {
-    alert('Para instalar no iPhone:\n\n1. Toque em Compartilhar (quadrado com seta, na barra do Safari)\n2. Escolha "Adicionar à Tela de Início"\n3. Toque em Adicionar');
+    corpo = '<ol><li>Toque em <span class="ic">Compartilhar ⬆︎</span> na barra do Safari</li><li>Role e escolha <b>Adicionar à Tela de Início</b></li><li>Toque em <b>Adicionar</b></li></ol>';
+    acao = false;
+  } else if (!pedidoInstalar) {
+    corpo = '<ol><li>Toque no menu <span class="ic">⋮</span> do navegador</li><li>Escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b></li></ol>';
+    acao = false;
+  }
+  el('folhaCorpo').innerHTML = corpo;
+  el('folhaBtn').textContent = btn;
+  el('folhaBtn').classList.toggle('hide', !acao);
+  el('folha').classList.remove('hide');
+}
+function fecharFolha() {
+  el('folha').classList.add('hide');
+  guardar('folhaAdiada', String(Date.now()));   // volta a sugerir em 2 dias
+}
+function deveSugerir() {
+  if (rodandoComoApp()) return false;
+  var t = Number(ler('folhaAdiada') || 0);
+  return Date.now() - t > 2 * 24 * 3600 * 1000;
+}
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault(); pedidoInstalar = e; mostrarInstalar(true);
+  if (!el('folha').classList.contains('hide')) abrirFolha();   // já aberta com instruções: troca pelo botão direto
+});
+window.addEventListener('appinstalled', function () { pedidoInstalar = null; mostrarInstalar(false); el('folha').classList.add('hide'); });
+function instalarApp() {
+  if (navEmbutido() && ehAndroid()) {
+    location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end';
+  } else if (pedidoInstalar) {
+    pedidoInstalar.prompt();
+    pedidoInstalar.userChoice.then(function () { pedidoInstalar = null; mostrarInstalar(false); el('folha').classList.add('hide'); });
+  } else {
+    abrirFolha();
   }
 }
-if (!rodandoComoApp() && ehIphone()) mostrarInstalar(true);
+if (!rodandoComoApp()) mostrarInstalar(true);
+// Sugere logo ao abrir (espera um instante para o Chrome liberar o botão de instalação direta).
+setTimeout(function () { if (deveSugerir()) abrirFolha(); }, 1800);
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
