@@ -42,75 +42,82 @@ vm.createContext(servidor);
 ['Util.gs', 'Auth.gs', 'Clientes.gs', 'Contatos.gs', 'Api.gs'].forEach(f => vm.runInContext(fs.readFileSync(SRC + f, 'utf8'), servidor, { filename: f }));
 const postServidor = body => vm.runInContext('doPost({ postData: { contents: ' + JSON.stringify(body) + ' } })', servidor).txt;
 
-// ---- Google simulado (o que o instalador chama por REST) e instalador
+// ---- Google simulado (serviço Drive embutido do Apps Script) e o instalador; o navegador é imitado em fluxo()
 let emailAtivo = 'cliente@exemplo.com', falhasRegistro = 0;
-const log = { pastas: 0, planilhas: 0, permissoes: [], chamadasCentral: [] };
+const log = { pastas: 0, planilhas: 0, permissoes: [] };
 const rid = () => crypto.randomBytes(16).toString('hex').slice(0, 33);
-const respostaHttp = (code, obj) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(obj) });
 const userProps = {};
 const instalador = {
   console, Date, Math, String, Number, Error, Object, Array, RegExp, JSON,
   Session: { getActiveUser: () => ({ getEmail: () => emailAtivo }) },
-  ScriptApp: { getOAuthToken: () => 'token-falso' },
   PropertiesService: { getUserProperties: () => ({ getProperty: k => userProps[k] || null, setProperty: (k, v) => { userProps[k] = v; }, deleteProperty: k => { delete userProps[k]; } }) },
-  Utilities: { sleep: () => {} },
   HtmlService: {},
-  UrlFetchApp: { fetch: (url, o) => {
-    if (url.indexOf('script.google.com') >= 0) {
-      const b = JSON.parse(o.payload); log.chamadasCentral.push(b.fn);
-      if (b.fn === 'apiRegistrarCliente' && falhasRegistro > 0) { falhasRegistro--; return respostaHttp(200, { ok: false, erro: 'Não consegui abrir a planilha. Ela precisa estar compartilhada (editor) com a conta do operador.' }); }
-      return { getContentText: () => postServidor(o.payload), getResponseCode: () => 200 };
-    }
-    if (o.headers.Authorization !== 'Bearer token-falso') return respostaHttp(401, { error: { message: 'sem token' } });
-    if (/drive\/v3\/files\?/.test(url) && o.method === 'post') {
-      const corpo = JSON.parse(o.payload); if (corpo.mimeType !== 'application/vnd.google-apps.folder') return respostaHttp(400, { error: { message: 'tipo' } });
-      const id = rid(); log.pastas++; const dono = emailAtivo; pastas[id] = { getOwner: () => ({ getEmail: () => dono }) }; return respostaHttp(200, { id });
-    }
-    if (/sheets\.googleapis\.com\/v4\/spreadsheets$/.test(url)) {
-      const id = rid(); log.planilhas++; const dono = emailAtivo; livros[id] = new Livro(id); arquivos[id] = { getOwner: () => ({ getEmail: () => dono }), getDateCreated: () => new Date() };
-      return respostaHttp(200, { spreadsheetId: id });
-    }
-    const m = /drive\/v3\/files\/([^/]+)\/permissions/.exec(url);
-    if (m) { const c = JSON.parse(o.payload); log.permissoes.push({ id: m[1], email: c.emailAddress, role: c.role }); return respostaHttp(200, { id: 'perm' }); }
-    return respostaHttp(404, { error: { message: 'rota desconhecida ' + url } });
-  } }
+  Drive: {
+    Files: { create: r => {
+      const id = rid(), dono = emailAtivo;
+      if (r.mimeType === 'application/vnd.google-apps.folder') { log.pastas++; pastas[id] = { getOwner: () => ({ getEmail: () => dono }) }; }
+      else if (r.mimeType === 'application/vnd.google-apps.spreadsheet') { log.planilhas++; livros[id] = new Livro(id); arquivos[id] = { getOwner: () => ({ getEmail: () => dono }), getDateCreated: () => new Date() }; }
+      else throw new Error('tipo inesperado ' + r.mimeType);
+      return { id };
+    } },
+    Permissions: { create: (r, id, o) => { log.permissoes.push({ id, email: r.emailAddress, role: r.role, aviso: o && o.sendNotificationEmail }); return { id: 'perm' }; } }
+  }
 };
 vm.createContext(instalador);
 vm.runInContext(fs.readFileSync(INST, 'utf8'), instalador, { filename: 'Codigo.gs' });
-const criar = d => { try { return vm.runInContext('criarEmpresa(' + JSON.stringify(d) + ')', instalador); } catch (e) { return { erro: e.message }; } };
+const noScript = (fn, ...a) => vm.runInContext(fn + '(' + a.map(x => JSON.stringify(x)).join(',') + ')', instalador);
+const central = (fn, args) => { const r = JSON.parse(postServidor(JSON.stringify({ fn, args }))); if (!r.ok) throw new Error(r.erro); return r.dados; };
+/** Imita a página do instalador no navegador (Instalador.html). */
+function fluxo(d) {
+  try {
+    if (d.senha.length < 6) throw new Error('A senha de gestão precisa ter pelo menos 6 caracteres.');
+    if (d.senha !== d.senha2) throw new Error('As duas senhas não são iguais.');
+    const operador = central('apiOperadorEmail', []);
+    const arq = noScript('prepararArquivos', { empresa: d.empresa, responsavel: d.responsavel, whatsapp: d.whatsapp, ciente: d.ciente }, operador);
+    const dados = { empresa: d.empresa, responsavel: d.responsavel, whatsapp: d.whatsapp, emailDono: arq.emailDono, planilhaId: arq.planilhaId, pastaId: arq.pastaId, senhaAdmin: d.senha, raio: 150, origem: d.origem, aceita: d.aceita };
+    let r, ult;
+    for (let n = 0; n < 5 && !r; n++) {
+      try { if (falhasRegistro > 0) { falhasRegistro--; throw new Error('Não consegui abrir a planilha. Ela precisa estar compartilhada (editor) com a conta do operador.'); } r = central('apiRegistrarCliente', [dados]); }
+      catch (e) { ult = e; if (!/compartilhada|Não consegui abrir/.test(e.message)) throw e; }
+    }
+    if (!r) throw ult;
+    noScript('concluirInstalacao');
+    return r;
+  } catch (e) { return { erro: e.message }; }
+}
 const dados = (x = {}) => ({ empresa: 'Café do Zé', responsavel: 'Zé', whatsapp: '(81) 99999-1234', senha: 'minha-senha-9', senha2: 'minha-senha-9', ciente: true, aceita: true, origem: 'cartao', ...x });
 
 const ok = []; const T = (t, c) => ok.push([t, !!c]);
-T('exige marcar que entendeu onde ficam os dados', /Marque a caixa/.test(criar(dados({ ciente: false })).erro));
-T('exige senhas iguais', /não são iguais/.test(criar(dados({ senha2: 'outra' })).erro));
-T('exige senha de 6+ caracteres', /pelo menos 6/.test(criar(dados({ senha: '123', senha2: '123' })).erro));
+const manif = JSON.parse(fs.readFileSync(require('path').join(require('path').dirname(INST), 'appsscript.json'), 'utf8'));
+T('instalador pede só permissões não sensíveis (drive.file e e-mail)', manif.oauthScopes.length === 2 && manif.oauthScopes.every(s => /drive\.file|userinfo\.email/.test(s)));
+T('instalador usa o serviço Drive embutido (não precisa ligar API)', manif.dependencies.enabledAdvancedServices.some(s => s.serviceId === 'drive'));
+T('exige marcar que entendeu onde ficam os dados', /Marque a caixa/.test(fluxo(dados({ ciente: false })).erro));
+T('exige senhas iguais', /não são iguais/.test(fluxo(dados({ senha2: 'outra' })).erro));
+T('exige senha de 6+ caracteres', /pelo menos 6/.test(fluxo(dados({ senha: '123', senha2: '123' })).erro));
 T('nada foi criado nas recusas', log.pastas === 0 && log.planilhas === 0);
 
-const r = criar(dados());
+const r = fluxo(dados());
 T('cria com sucesso e devolve id e link com ?c=', r.id && /\?c=cafe-do-ze-[a-z0-9]{4}$/.test(r.appUrl));
 T('criou 1 pasta e 1 planilha na conta do cliente', log.pastas === 1 && log.planilhas === 1);
-T('compartilhou pasta e planilha (editor) com o operador, e só com ele', log.permissoes.length === 2 && log.permissoes.every(p => p.email === 'operador@exemplo.com' && p.role === 'writer'));
+T('compartilhou pasta e planilha (editor, sem e-mail de aviso) só com o operador', log.permissoes.length === 2 && log.permissoes.every(p => p.email === 'operador@exemplo.com' && p.role === 'writer' && p.aviso === false));
 T('devolveu a senha padrão dos colaboradores (8 caracteres)', typeof r.senhaPadrao === 'string' && r.senhaPadrao.length === 8);
 T('login de admin no app novo funciona com a senha escolhida', JSON.parse(postServidor(JSON.stringify({ c: r.id, fn: 'apiLogin', args: ['admin', 'minha-senha-9', false] }))).ok === true);
 T('estado temporário limpo ao terminar', !userProps.instalacao);
 
-// falha no meio (compartilhamento ainda não propagou): 2 tentativas e dá certo, sem duplicar nada
 log.pastas = 0; log.planilhas = 0; log.permissoes = []; falhasRegistro = 2; emailAtivo = 'outra@exemplo.com';
-const r2 = criar(dados({ empresa: 'Loja Dois' }));
+const r2 = fluxo(dados({ empresa: 'Loja Dois' }));
 T('repete o registro quando o compartilhamento ainda não propagou', r2.id && /^loja-dois-/.test(r2.id));
 T('na repetição não cria pasta/planilha duplicada', log.pastas === 1 && log.planilhas === 1);
 
-// falha definitiva e nova tentativa: reaproveita o que já criou
 log.pastas = 0; log.planilhas = 0; log.permissoes = []; falhasRegistro = 9; emailAtivo = 'terceira@exemplo.com';
-const f = criar(dados({ empresa: 'Loja Tres' }));
+const f = fluxo(dados({ empresa: 'Loja Tres' }));
 T('falha persistente devolve o erro (não esconde)', /compartilhada/.test(f.erro || ''));
 const antes = { p: log.pastas, s: log.planilhas }; falhasRegistro = 0;
-const r3 = criar(dados({ empresa: 'Loja Tres' }));
+const r3 = fluxo(dados({ empresa: 'Loja Tres' }));
 T('nova tentativa reaproveita a pasta e a planilha já criadas', r3.id && log.pastas === antes.p && log.planilhas === antes.s);
 
-// o próprio operador testando com a conta dele: não tenta compartilhar consigo mesmo
 log.permissoes = []; emailAtivo = 'operador@exemplo.com';
-const r4 = criar(dados({ empresa: 'Teste do Operador' }));
+const r4 = fluxo(dados({ empresa: 'Teste do Operador' }));
 T('operador testando: cria sem compartilhar consigo mesmo', r4.id && log.permissoes.length === 0);
 
 ok.forEach(([t, v]) => console.log((v ? 'OK    ' : 'FALHA ') + t));
