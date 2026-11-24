@@ -108,6 +108,23 @@
   .cam-aviso { font:600 22px var(--serif); margin-top:14px; text-align:center; }
   .cam-status { font-size:14px; opacity:.8; margin-top:4px; text-align:center; min-height:20px; }
   body.tela-admin main { max-width:1120px; }
+  /* Computador: menu lateral retrátil com ícones (celular continua com as abas em pílulas) */
+  #aTabs .ic, #menuToggle { display:none; }
+  @media (min-width:900px) {
+    body.tela-admin #aTabs { position:fixed; left:0; top:58px; bottom:0; width:232px; flex-direction:column; flex-wrap:nowrap; gap:2px; overflow-y:auto; overflow-x:hidden; margin:0; padding:10px 8px; background:#fff; border-right:1px solid var(--bd); z-index:4; transition:width .18s ease; }
+    body.tela-admin #menuToggle { display:flex; align-items:center; gap:12px; padding:10px 12px; margin-bottom:6px; border-radius:10px; cursor:pointer; color:var(--mut); font:600 12px var(--sans); text-transform:uppercase; letter-spacing:.6px; user-select:none; }
+    body.tela-admin #menuToggle:hover { background:var(--vinho-claro); color:var(--vinho); }
+    body.tela-admin #aTabs .ic { display:inline-flex; flex:0 0 20px; }
+    body.tela-admin #aTabs button { display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:11px 12px; border:0; border-radius:10px; background:transparent; white-space:nowrap; font:500 14px var(--sans); color:var(--txt); }
+    body.tela-admin #aTabs button:hover { background:var(--vinho-claro); }
+    body.tela-admin #aTabs button.on { background:var(--vinho-claro); color:var(--vinho); font-weight:600; box-shadow:inset 3px 0 0 var(--vinho); }
+    body.tela-admin #aTabs .tx { overflow:hidden; text-overflow:ellipsis; }
+    body.tela-admin main { max-width:1280px; margin:0 0 0 232px; padding:22px 28px 40px; transition:margin-left .18s ease; }
+    body.tela-admin.menu-fechado #aTabs { width:68px; }
+    body.tela-admin.menu-fechado #aTabs .tx { display:none; }
+    body.tela-admin.menu-fechado main { margin-left:68px; }
+    body.tela-admin.menu-fechado #aTabs button, body.tela-admin.menu-fechado #menuToggle { justify-content:center; padding-left:0; padding-right:0; }
+  }
   .topo-filtro { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
   .filtro { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .filtro input { width:auto; padding:8px 10px; font-size:14px; }
@@ -300,7 +317,7 @@
   table.esc .fcob { display:block; font-size:10.5px; font-weight:500; }
   #escDias input { width:78px; padding:6px 8px; font-size:14px; } #escDias input[type=checkbox] { width:18px; }
   .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
-  @media print { header, #aTabs, #cfgTabs, #escParams, .filtro, .instalar { display:none !important; } .card { box-shadow:none; border:0; } }
+  @media print { body.tela-admin main { margin:0 !important; max-width:none !important; } header, #aTabs, #cfgTabs, #escParams, .filtro, .instalar { display:none !important; } .card { box-shadow:none; border:0; } }
 </style>
 </head>
 <body>
@@ -421,15 +438,16 @@
 <!-- ADMIN -->
 <section id="admin" class="hide">
   <div class="tabs" id="aTabs">
-    <button data-t="aovivo" class="on">● Ao vivo</button>
-    <button data-t="fechamento">Fechamento</button>
-    <button data-t="tratamento">Tratamento <span id="aPend"></span></button>
-    <button data-t="colab">Colaboradores</button>
-    <button data-t="espelho">Espelho</button>
-    <button data-t="ajuste">Ajustar ponto</button>
-    <button data-t="recusadas">Recusadas</button>
-    <button data-t="escala">Escala 5x2 <span class="badge">novo</span></button>
-    <button data-t="config">⚙️ Configurações</button>
+    <div id="menuToggle" role="button" tabindex="0" title="Recolher/abrir menu" aria-label="Recolher ou abrir o menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="tx">Menu</span></div>
+    <button data-t="aovivo" title="Ao vivo" class="on"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></span><span class="tx">Ao vivo</span></button>
+    <button data-t="fechamento" title="Fechamento"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 15l2 2 4-4"/></svg></span><span class="tx">Fechamento</span></button>
+    <button data-t="tratamento" title="Tratamento"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12h-5l-2 3h-2l-2-3H4z"/><path d="M8 9h8M8 12h5"/></svg></span><span class="tx">Tratamento <span id="aPend"></span></span></button>
+    <button data-t="colab" title="Colaboradores"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 0 1 0 6M18.5 14.4c1.6.8 2.5 2.4 2.5 4.6"/></svg></span><span class="tx">Colaboradores</span></button>
+    <button data-t="espelho" title="Espelho"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="tx">Espelho</span></button>
+    <button data-t="ajuste" title="Ajustar ponto"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span><span class="tx">Ajustar ponto</span></button>
+    <button data-t="recusadas" title="Recusadas"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg></span><span class="tx">Recusadas</span></button>
+    <button data-t="escala" title="Escala 5x2"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg></span><span class="tx">Escala 5x2 <span class="badge">novo</span></span></button>
+    <button data-t="config" title="Configurações"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></span><span class="tx">Configurações</span></button>
   </div>
   <div class="tabs hide" id="cfgTabs">
     <button data-s="regras">Regras e jornada</button>
@@ -1257,6 +1275,12 @@ function mostrarConfig(sub) {
   if (cfgAtual === 'tipos') carregarTipos();
 }
 document.querySelectorAll('#cfgTabs button').forEach(function (b) { b.onclick = function () { msg('aMsg'); mostrarConfig(b.dataset.s); }; });
+(function () {
+  var t = el('menuToggle');
+  try { if (localStorage.getItem('menuFechado') === '1') document.body.classList.add('menu-fechado'); } catch (e) {}
+  function alterna() { var f = document.body.classList.toggle('menu-fechado'); try { localStorage.setItem('menuFechado', f ? '1' : '0'); } catch (e) {} }
+  t.onclick = alterna; t.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alterna(); } };
+})();
 document.querySelectorAll('#aTabs button').forEach(function (b) {
   b.onclick = function () {
     document.querySelectorAll('#aTabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
@@ -2032,8 +2056,8 @@ function salvarLoja() {
 // ---------- Regras trabalhistas (regras/trabalhistas.json; esta cópia só vale se o arquivo não carregar) ----------
 var TRAB = {
   jornada: { fases: [
-    { de: '2026-12-15', horas_semana: 42, folgas_semana: 2, max_dias_semana: 5, fonte: 'Emenda Constitucional 141/2026' },
-    { de: '2027-12-16', horas_semana: 40, folgas_semana: 2, max_dias_semana: 5, max_horas_dia: 8, fonte: 'Emenda Constitucional 141/2026' } ] },
+    { de: '2026-12-16', horas_semana: 42, folgas_semana: 2, max_dias_semana: 5, fonte: 'Emenda Constitucional 141/2026' },
+    { de: '2027-12-16', horas_semana: 40, folgas_semana: 2, max_dias_semana: 5, fonte: 'Emenda Constitucional 141/2026' } ] },
   ferias: { max_periodos: 3, periodo_min_dias: 5, um_periodo_min_dias: 14, max_dias_ano: 30, dias_proibidos_antes_descanso: 2 }
 };
 function dataBR(iso) { var p = String(iso).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
@@ -2042,7 +2066,7 @@ function faseAlvo() { var f = TRAB.jornada.fases, h = hojeIso(); return f.filter
 function pintarExplicaEscala() {
   var f = TRAB.jornada.fases, ex = el('escExplica'), lim = el('escLimite');
   if (ex) ex.innerHTML = 'Regras vigentes (<b>' + esc(f[0].fonte || 'norma') + '</b>), lidas de <i>regras/trabalhistas.json</i>' + (TRAB.atualizado_em ? ' · atualizado em ' + dataBR(TRAB.atualizado_em) : '') + '. ' +
-    f.map(function (x) { return 'A partir de <b>' + dataBR(x.de) + '</b>: no máximo <b>' + x.horas_semana + ' h por semana</b>, <b>' + x.folgas_semana + ' folgas</b> semanais' + (x.max_horas_dia ? ', até ' + x.max_horas_dia + ' h por dia' : '') + ', em até ' + x.max_dias_semana + ' dias.'; }).join(' ');
+    f.map(function (x) { return 'A partir de <b>' + dataBR(x.de) + '</b>: no máximo <b>' + x.horas_semana + ' h por semana</b>, <b>' + x.folgas_semana + ' folgas</b> semanais (uma delas, de preferência, no domingo), em até ' + x.max_dias_semana + ' dias por semana (conta de 2 folgas em 7).'; }).join(' ');
   if (lim) {
     var atual = lim.value;
     lim.innerHTML = f.map(function (x, i) { return '<option value="' + x.horas_semana + '">' + x.horas_semana + ' h (' + (i < f.length - 1 ? 'de ' + dataBR(x.de) + ' a ' + dataBR(isoMais(f[i + 1].de, -1)) : 'a partir de ' + dataBR(x.de)) + ')</option>'; }).join('');

@@ -1,12 +1,26 @@
 {
-  "versao": 1,
+  "versao": 2,
   "atualizado_em": "2026-11-24",
   "nota": "Regras que o app usa na aba Escala 5x2. Para mudar uma regra, edite aqui (não precisa mexer no app). O vigia semanal (.github/workflows/vigia-regras.yml) abre um aviso quando sai norma nova; a alteração só entra depois de revisão humana.",
   "jornada": {
     "fases": [
-      { "de": "2026-12-15", "horas_semana": 42, "folgas_semana": 2, "max_dias_semana": 5, "fonte": "Emenda Constitucional 141/2026" },
-      { "de": "2027-12-16", "horas_semana": 40, "folgas_semana": 2, "max_dias_semana": 5, "max_horas_dia": 8, "fonte": "Emenda Constitucional 141/2026" }
-    ]
+      {
+        "de": "2026-12-16",
+        "horas_semana": 42,
+        "folgas_semana": 2,
+        "max_dias_semana": 5,
+        "fonte": "Emenda Constitucional 141/2026 (art. 6º) e Decreto 13.173/2026"
+      },
+      {
+        "de": "2027-12-16",
+        "horas_semana": 40,
+        "folgas_semana": 2,
+        "max_dias_semana": 5,
+        "fonte": "Emenda Constitucional 141/2026 (art. 6º) e Decreto 13.173/2026"
+      }
+    ],
+    "domingo": "preferencial: um dos dois dias de folga, de preferência no domingo (EC 141, art. 1º)",
+    "observacao": "max_dias_semana=5 é conta de 2 folgas em 7, não está escrito na EC nem no decreto. A Portaria MTE 2.041/2026 (DOU 23/11) detalha folgas, domingos no comércio e banco de horas: texto oficial ainda NÃO conferido."
   },
   "ferias": {
     "max_periodos": 3,
@@ -15,5 +29,10 @@
     "max_dias_ano": 30,
     "dias_proibidos_antes_descanso": 2,
     "fonte": "CLT art. 134"
+  },
+  "divisor_hora": {
+    "42h": 210,
+    "40h": 200,
+    "fonte": "Decreto 13.173/2026, art. 5º (vale o mais favorável ao empregado)"
   }
 }
