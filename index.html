@@ -232,6 +232,8 @@
   .esc-pessoas div { display:flex; align-items:center; gap:8px; } .esc-pessoas label { margin:0; flex:1; text-transform:none; letter-spacing:0; font-size:14px; font-weight:500; color:var(--txt); display:flex; gap:6px; align-items:center; }
   .esc-pessoas select, #escDias select { width:auto; padding:5px 30px 5px 8px; font-size:13px; }
   #escFuncMin input { width:56px; padding:5px 8px; font-size:14px; }
+  table.esc small.alm { display:block; font-size:10.5px; color:var(--mut); font-weight:500; }
+  table.esc .turno { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--vinho2); font-weight:700; }
   table.esc .ftag { display:inline-block; font-size:10.5px; font-weight:600; color:var(--mut); background:var(--bg); border:1px solid var(--bd); border-radius:6px; padding:0 5px; margin-left:4px; }
   table.esc .fcob { display:block; font-size:10.5px; font-weight:500; }
   #escDias input { width:78px; padding:6px 8px; font-size:14px; } #escDias input[type=checkbox] { width:18px; }
@@ -1765,18 +1767,19 @@ function pintarDiagnostico() {
 function preencherParametros() {
   var r = ESC.real, padrao = [[480, 1020], [480, 1020], [480, 1020], [480, 1020], [480, 1020], [540, 840], [null, null]];
   var maxMed = Math.max.apply(null, r.dia.map(function (d) { return d.media || 0; }).concat([0]));
-  el('escDias').innerHTML = '<tr><th>Dia</th><th>Abre?</th><th>Abre às</th><th>Fecha às</th><th>Movimento</th><th>Mínimo de pessoas</th><th class="mut">Hoje (média)</th></tr>' +
+  var nEquipe = r.pessoas.length || 1, nAbertos = r.pessoas.length ? r.dia.filter(function (d) { return d.aberto; }).length : 6;
+  el('escDias').innerHTML = '<tr><th>Dia</th><th>Abre?</th><th>Abre às</th><th>Fecha às</th><th>Movimento</th><th>Mínimo ao mesmo tempo</th><th class="mut">Hoje (pessoas/dia)</th></tr>' +
     DIAS_SEM.map(function (n, i) {
       var d = r.dia[i] || {}, temDados = r.pessoas.length > 0;
       var aberto = temDados ? d.aberto : padrao[i][0] !== null;
       var ini = d.ini !== null && d.ini !== undefined ? d.ini : padrao[i][0], fim = d.fim !== null && d.fim !== undefined ? d.fim : padrao[i][1];
       if (ini !== null) ini = Math.round(ini / 30) * 30; if (fim !== null) fim = Math.round(fim / 30) * 30;
-      var minimo = aberto ? Math.max(1, Math.round((d.media || 2) * 0.75)) : 0;
+      var rel = maxMed ? (d.media || 0) / maxMed : 1, mov = rel < 0.85 ? 'fraco' : (rel > 0.98 ? 'forte' : 'normal');
+      var minimo = aberto ? minimoPorMovimento(mov, nEquipe, nAbertos) : 0;
       return '<tr><td><b>' + n + '</b></td><td><input type="checkbox" id="escA' + i + '"' + (aberto ? ' checked' : '') + '></td>' +
         '<td><input id="escI' + i + '" value="' + (ini !== null ? hhmm(ini) : '08:00') + '"></td><td><input id="escF' + i + '" value="' + (fim !== null ? hhmm(fim) : '17:00') + '"></td>' +
         '<td><select id="escV' + i + '">' + ['fraco', 'normal', 'forte'].map(function (v) {
-          var rel = maxMed ? (d.media || 0) / maxMed : 1, auto = rel < 0.85 ? 'fraco' : (rel > 0.98 ? 'forte' : 'normal');
-          return '<option value="' + v + '"' + (v === auto ? ' selected' : '') + '>' + v.charAt(0).toUpperCase() + v.slice(1) + '</option>';
+          return '<option value="' + v + '"' + (v === mov ? ' selected' : '') + '>' + v.charAt(0).toUpperCase() + v.slice(1) + '</option>';
         }).join('') + '</select></td>' +
         '<td><input id="escM' + i + '" inputmode="numeric" value="' + minimo + '"></td><td class="mut">' + (d.media ? d.media.toFixed(1).replace('.', ',') : '–') + '</td></tr>';
     }).join('');
@@ -1814,13 +1817,19 @@ function pintarFuncMin() {
     return '<label>' + esc(f) + ' <input type="number" min="0" data-f="' + esc(f) + '" value="' + v + '"></label>';
   }).join('') || '<span class="mut">Marque a equipe acima.</span>';
 }
-/** Movimento muda o mínimo do dia (fraco ≈ metade da equipe, normal ≈ 2/3, forte = todos menos 1). */
+/**
+ * Mínimo de pessoas AO MESMO TEMPO conforme o movimento. Parte da capacidade real da equipe em 5x2:
+ * cada pessoa trabalha 5 dias → em média N×5/dias_abertos por dia; o almoço tira ~30% de uma vez.
+ */
+function minimoPorMovimento(mov, n, abertos) {
+  var porDia = n * 5 / Math.max(1, abertos);
+  return Math.max(1, Math.round(porDia * { fraco: 0.55, normal: 0.7, forte: 0.85 }[mov]));
+}
 function aoMudarParam(ev) {
   var t = ev.target;
-  var n = document.querySelectorAll('#escPessoas input:checked').length;
   if (t.id && t.id.indexOf('escV') === 0) {
-    var i = t.id.slice(4), fator = { fraco: 0.5, normal: 0.67, forte: 1 }[t.value];
-    el('escM' + i).value = Math.max(1, t.value === 'forte' ? n - 1 : Math.round(n * fator));
+    var n = document.querySelectorAll('#escPessoas input:checked').length, ab = DIAS_SEM.filter(function (x, k) { return el('escA' + k).checked; }).length;
+    el('escM' + t.id.slice(4)).value = minimoPorMovimento(t.value, n, ab);
   }
   if (t.classList && (t.classList.contains('escFun') || t.type === 'checkbox')) pintarFuncMin();
   salvarCfgEscala();
@@ -1834,8 +1843,9 @@ function lerParametros() {
     var dur = a && ini !== null && fim !== null && fim > ini ? fim - ini : 0;
     var almoco = dur > 360 ? 60 : (dur > 240 ? 15 : 0);
     var meio = Math.min(240, dur);
-    return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0),
-      trab: Math.max(0, dur - almoco), meio: meio, almoco: almoco };
+    // Loja aberta mais de 9 h (8 h + 1 h de almoço): uma pessoa não cobre o dia → turnos de abertura e de fechamento
+    return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0), dur: dur,
+      longo: dur > 540, trab: Math.max(0, Math.min(dur, 540) - (Math.min(dur, 540) > 360 ? 60 : almoco)), meio: meio, almoco: almoco };
   });
   var pessoas = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) {
     var sel = x.closest('div').querySelector('select');
@@ -1863,7 +1873,7 @@ function montarEscala(modo) {
         }
         if (modo === 'branco') return 'F';
         var real = porId[p.id];   // 'atual': repete o que a pessoa faz hoje (dias em que costuma trabalhar)
-        return !real || !real.freq || real.freq[i] >= 0.5 ? 'T' : 'F';
+        return !real || !real.freq || real.freq[i] >= 0.5 ? (d.longo ? (pi % 2 ? 'C' : 'A') : 'T') : 'F';
       });
     }) });
   }
@@ -1894,7 +1904,8 @@ function sugerirFolgas() {
         var melhor = -1, nota = -1e9;
         g.forEach(function (x, i) {
           if (x === 'F') return;
-          var n = (equipe[i] - dias[i].min) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0) +
+          var alvo = dias[i].min * (dias[i].dur > 360 ? 1.35 : 1);   // dias com almoço precisam de mais gente no dia para manter o mínimo
+          var n = (equipe[i] - alvo) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0) +
             (porFunc[fu][i] - 1 < minF ? -1000 : (porFunc[fu][i] - minF) * 4);   // não deixa a função sem cobertura
           if (n > nota) { nota = n; melhor = i; }
         });
@@ -1902,17 +1913,71 @@ function sugerirFolgas() {
       }
       domSeguidos[pi] = g[6] === 'F' || !dias[6].aberto ? 0 : domSeguidos[pi] + 1;
     });
+    // dias longos: metade abre, metade fecha (alternando funções para as duas pontas ficarem cobertas)
+    dias.forEach(function (d, i) {
+      if (!d.longo) return;
+      var quem = e.pessoas.map(function (p, pi) { return pi; }).filter(function (pi) { return s.grade[pi][i] !== 'F'; })
+        .sort(function (a, b) { return (e.pessoas[a].funcao || '').localeCompare(e.pessoas[b].funcao || '') || ((a + w) % 3) - ((b + w) % 3); });
+      quem.forEach(function (pi, k) { s.grade[pi][i] = (k + w) % 2 ? 'C' : 'A'; });
+    });
   });
 }
 
 function horasCel(x, d) { return !d.aberto || x === 'F' ? 0 : (x === 'M' ? d.meio : d.trab); }
+/** Horário de entrada/saída da célula: T dia inteiro · A abre · C fecha · M meio período. */
+function janelaCel(x, d) {
+  if (!d.aberto || x === 'F') return null;
+  if (x === 'M') return { a: d.ini, b: d.ini + d.meio };
+  if (x === 'A') return { a: d.ini, b: d.ini + 540 };
+  if (x === 'C') return { a: d.fim - 540, b: d.fim };
+  return { a: d.ini, b: d.fim };
+}
+function hCurta(m) { return Math.floor(m / 60) + 'h' + (m % 60 ? ('0' + (m % 60)).slice(-2) : ''); }
 
 function alternarCel(w, pi, i) {
   var g = ESC.ultima.semanas[w].grade[pi];
   if (!ESC.ultima.dias[i].aberto) return;
-  g[i] = g[i] === 'T' ? 'F' : (g[i] === 'F' ? 'M' : 'T');
+  var ciclo = ESC.ultima.dias[i].longo ? ['A', 'C', 'F', 'M'] : ['T', 'F', 'M'];
+  g[i] = ciclo[(ciclo.indexOf(g[i]) + 1) % ciclo.length];
   vibrar(10);
   recalcularEscala();
+}
+
+/**
+ * Almoço escalonado: quem faz mais de 6 h tem 1 h de almoço entre 3 h depois de entrar e 3 h antes de sair.
+ * Distribui os horários para manter o máximo de gente na loja e não deixar uma função sem ninguém.
+ */
+function escalonarAlmoco(e, s, w) {
+  var dias = e.dias;
+  s.almoco = e.pessoas.map(function () { return dias.map(function () { return null; }); });
+  dias.forEach(function (d, i) {
+    if (!d.aberto) return;
+    var pres = {}, presF = {};   // pres[t] = gente na loja no meio-horário t
+    function marcar(pi, a, b, k) { for (var t = a; t < b; t += 30) { pres[t] = (pres[t] || 0) + k; var f = e.pessoas[pi].funcao; presF[f] = presF[f] || {}; presF[f][t] = (presF[f][t] || 0) + k; } }
+    var precisam = [];
+    e.pessoas.forEach(function (p, pi) {
+      var jn = janelaCel(s.grade[pi][i], d); if (!jn) return;
+      marcar(pi, jn.a, jn.b, 1);
+      if (jn.b - jn.a > 360) precisam.push({ pi: pi, jn: jn });
+    });
+    // funções com mínimo almoçam primeiro (escolhem horário sem deixar a função descoberta)
+    precisam.sort(function (x, y) {
+      var fx = (e.minFunc || {})[e.pessoas[x.pi].funcao] || 0, fy = (e.minFunc || {})[e.pessoas[y.pi].funcao] || 0;
+      return fy - fx || ((x.pi + w + i) % precisam.length) - ((y.pi + w + i) % precisam.length);
+    });
+    precisam.forEach(function (q) {
+      var f = e.pessoas[q.pi].funcao, minF = (e.minFunc || {})[f] || 0, melhor = null, nota = -1e9;
+      for (var a = q.jn.a + 180; a + 60 <= q.jn.b - 120; a += 60) {
+        var pior = 1e9, piorF = 1e9;
+        for (var t = a; t < a + 60; t += 30) { pior = Math.min(pior, (pres[t] || 0) - 1 - d.min); piorF = Math.min(piorF, ((presF[f] || {})[t] || 0) - 1 - minF); }
+        var n = pior * 10 + (piorF < 0 ? -500 : piorF * 3) - Math.abs(a - (d.ini + d.fim - 60) / 2) / 600;
+        if (n > nota) { nota = n; melhor = a; }
+      }
+      if (melhor === null) melhor = Math.round((q.jn.a + q.jn.b - 60) / 2 / 30) * 30;
+      s.almoco[q.pi][i] = melhor;
+      marcar(q.pi, melhor, melhor + 60, -1);
+    });
+  });
 }
 
 /** Confere as regras na hora e redesenha. */
@@ -1925,6 +1990,11 @@ function recalcularEscala() {
   function add(chave, txt, nivel) { irr.push({ txt: txt, nivel: nivel || 'err' }); marca[chave] = nivel || 'err'; }
   var seguidos = e.pessoas.map(function () { return 0; }), domSeg = e.pessoas.map(function () { return 0; }), ultimoFim = e.pessoas.map(function () { return null; });
   e.semanas.forEach(function (s, w) {
+    s.grade.forEach(function (g, pi) { g.forEach(function (x, i) {   // mudou o horário da loja: ajusta o tipo de turno
+      if (dias[i].longo && x === 'T') g[i] = pi % 2 ? 'C' : 'A';
+      if (!dias[i].longo && (x === 'A' || x === 'C')) g[i] = 'T';
+    }); });
+    escalonarAlmoco(e, s, w);
     s.equipe = dias.map(function (d, i) { return s.grade.reduce(function (a, g) { return a + (d.aberto && g[i] !== 'F' ? 1 : 0); }, 0); });
     s.min = s.grade.map(function (g) { return g.reduce(function (a, x, i) { return a + horasCel(x, dias[i]); }, 0); });
     var rot = 'Semana ' + (w + 1);
@@ -1934,12 +2004,11 @@ function recalcularEscala() {
       if (s.min[pi] > e.limite) add(w + '-' + pi, rot + ' · ' + p.nome + ': ' + hNum(s.min[pi]) + ' h na semana (máx. ' + hNum(e.limite) + ' h).');
       g.forEach(function (x, i) {
         var d = dias[i], trab = d.aberto && x !== 'F';
-        if (trab && x === 'T' && d.trab > 480) add(w + '-' + pi + '-' + i, rot + ' · ' + p.nome + ' · ' + d.nome + ': ' + hNum(d.trab) + ' h no dia (máx. 8 h). Use meio período ou 2 turnos.');
         if (trab) {
           seguidos[pi]++;
           if (seguidos[pi] === 7) add(w + '-' + pi + '-' + i, rot + ' · ' + p.nome + ' · ' + d.nome + ': 7º dia seguido sem folga (descanso semanal, CLT art. 67).');
-          var fimDia = x === 'M' ? d.ini + d.meio : d.fim;
-          if (ultimoFim[pi] !== null && ultimoFim[pi].dia === w * 7 + i - 1 && (24 * 60 - ultimoFim[pi].fim + d.ini) < 660)
+          var jn = janelaCel(x, d), fimDia = jn.b;
+          if (ultimoFim[pi] !== null && ultimoFim[pi].dia === w * 7 + i - 1 && (24 * 60 - ultimoFim[pi].fim + jn.a) < 660)
             add(w + '-' + pi + '-' + i, rot + ' · ' + p.nome + ' · ' + d.nome + ': menos de 11 h de descanso desde o dia anterior (CLT art. 66).');
           ultimoFim[pi] = { dia: w * 7 + i, fim: fimDia };
         } else seguidos[pi] = 0;
@@ -1953,12 +2022,37 @@ function recalcularEscala() {
     Object.keys(e.minFunc || {}).forEach(function (f) {
       s.func[f] = dias.map(function (d, i) { return e.pessoas.reduce(function (a, p, pi) { return a + (d.aberto && p.funcao === f && s.grade[pi][i] !== 'F' ? 1 : 0); }, 0); });
     });
+    s.menor = dias.map(function () { return null; });
     dias.forEach(function (d, i) {
       if (!d.aberto) return;
-      Object.keys(e.minFunc || {}).forEach(function (f) {
-        if (e.minFunc[f] > 0 && s.func[f][i] < e.minFunc[f]) add('c-' + w + '-' + i, rot + ' · ' + d.nome + ': ' + (s.func[f][i] ? 'só ' + s.func[f][i] : 'nenhum(a)') + ' ' + f + ' na loja (mínimo ' + e.minFunc[f] + ').', 'aviso');
+      // cobertura a cada 30 min, do abrir ao fechar, descontando quem está no almoço
+      var faltaTot = [], faltaF = {}, menor = null;
+      for (var t = d.ini; t < d.fim; t += 30) {
+        var n = 0, nf = {}, escala = 0, escalaF = {};
+        e.pessoas.forEach(function (p, pi) {
+          var jn = janelaCel(s.grade[pi][i], d); if (!jn || t < jn.a || t >= jn.b) return;
+          escala++; escalaF[p.funcao] = (escalaF[p.funcao] || 0) + 1;
+          var al = s.almoco[pi][i]; if (al !== null && t >= al && t < al + 60) return;
+          n++; nf[p.funcao] = (nf[p.funcao] || 0) + 1;
+        });
+        if (!menor || n < menor.n) menor = { n: n, t: t };
+        if (n < d.min) faltaTot.push({ t: t, n: n, alm: escala >= d.min });
+        Object.keys(e.minFunc || {}).forEach(function (f) { if (e.minFunc[f] > 0 && (nf[f] || 0) < e.minFunc[f]) (faltaF[f] = faltaF[f] || []).push({ t: t, n: nf[f] || 0, alm: (escalaF[f] || 0) >= e.minFunc[f] }); });
+      }
+      s.menor[i] = menor;
+      function faixa(lst) {
+        var todo = lst.length * 30 >= d.fim - d.ini;
+        return todo ? 'o dia todo' : 'das ' + hCurta(lst[0].t) + ' às ' + hCurta(lst[lst.length - 1].t + 30);
+      }
+      function motivo(lst) { return lst.every(function (x) { return x.alm; }) ? ' · só no horário de almoço (escale alguém para cobrir ou mude o almoço)' : ''; }
+      Object.keys(faltaF).forEach(function (f) {
+        var l = faltaF[f], pior = Math.min.apply(null, l.map(function (x) { return x.n; }));
+        add('c-' + w + '-' + i, rot + ' · ' + d.nome + ' ' + faixa(l) + ': ' + (pior ? 'só ' + pior : 'nenhum(a)') + ' ' + f + ' na loja (mínimo ' + e.minFunc[f] + ')' + motivo(l) + '.', 'aviso');
       });
-      if (d.aberto && s.equipe[i] < d.min) add('c-' + w + '-' + i, rot + ' · ' + d.nome + ': ' + s.equipe[i] + ' pessoa(s) na loja, mínimo ' + d.min + '.', 'aviso');
+      if (faltaTot.length) {
+        var pior = Math.min.apply(null, faltaTot.map(function (x) { return x.n; }));
+        add('c-' + w + '-' + i, rot + ' · ' + d.nome + ' ' + faixa(faltaTot) + ': ' + pior + ' pessoa(s) na loja ao mesmo tempo (mínimo ' + d.min + ')' + motivo(faltaTot) + '.', 'aviso');
+      }
     });
   });
   e.irr = irr; e.marca = marca;
@@ -1973,7 +2067,8 @@ function pintarEscala() {
   var dif = r.pessoas.length && totalAntes ? Math.round((totalDepois - totalAntes) / totalAntes * 100) : null;
   var ok = !erros;
   var html = '<h2 style="margin-top:18px">Montar a escala</h2>' +
-    '<p class="mut">Toque nos dias de cada pessoa: <b>dia inteiro</b> → <b>folga</b> → <b>meio período (4 h)</b>. As irregularidades aparecem e somem na hora.</p>' +
+    '<p class="mut">Toque nos dias de cada pessoa: <b>dia inteiro</b> → <b>folga</b> → <b>meio período (4 h)</b>' + (dias.some(function (d) { return d.longo; }) ? ' (nos dias com loja aberta mais de 9 h: <b>abre</b> → <b>fecha</b> → folga → meio período)' : '') +
+      '. O almoço é escalonado sozinho para a loja não ficar abaixo do mínimo, e a cobertura é conferida de meia em meia hora, do abrir ao fechar.</p>' +
     '<div class="filtro" style="margin:8px 0 4px">' +
       '<button class="btn sec peq" onclick="montarEscala(\'atual\')">↺ Voltar à rotina atual</button>' +
       '<button class="btn sec peq" onclick="montarEscala(\'branco\')">Tudo folga (começar do zero)</button>' +
@@ -1999,16 +2094,20 @@ function pintarEscala() {
           var d = dias[i];
           if (!d.aberto) return '<td class="fe">fechado</td>';
           var m = marca[w + '-' + pi + '-' + i], cls = (x === 'F' ? 'fo' : (x === 'M' ? 'me' : 'tr')) + (m ? ' ' + (m === 'err' ? 'xerr' : 'xav') : '');
-          var txt = x === 'F' ? 'Folga' : (x === 'M' ? hhmm(d.ini) + '–' + hhmm(d.ini + d.meio) : hhmm(d.ini) + '–' + hhmm(d.fim));
+          var jn = janelaCel(x, d), al = s.almoco[pi][i];
+          var txt = x === 'F' ? 'Folga' : (x === 'A' ? '<span class="turno">abre</span>' : (x === 'C' ? '<span class="turno">fecha</span>' : '')) +
+            hCurta(jn.a) + '–' + hCurta(jn.b) + (al !== null ? '<small class="alm">almoço ' + hCurta(al) + '</small>' : '');
           return '<td class="cel ' + cls + '" onclick="alternarCel(' + w + ',' + pi + ',' + i + ')">' + txt + '</td>';
         }).join('') + '<td class="' + (s.min[pi] > e.limite ? 'neg' : '') + '">' + hNum(s.min[pi]) + ' h</td></tr>';
       }).join('') +
-      '<tr class="cob"><td>Na loja / mínimo<span class="fcob mut">por função</span></td>' + dias.map(function (d, i) {
+      '<tr class="cob"><td>Na loja / mínimo<span class="fcob mut">menor presença no dia (almoços)</span><span class="fcob mut">por função</span></td>' + dias.map(function (d, i) {
         if (!d.aberto) return '<td class="fe">–</td>';
         var fx = Object.keys(e.minFunc || {}).filter(function (f) { return e.minFunc[f] > 0; }).map(function (f) {
           return '<span class="fcob ' + (s.func[f][i] < e.minFunc[f] ? 'falta' : 'sobra') + '">' + esc(f.split(/[ (]/)[0]) + ' ' + s.func[f][i] + '/' + e.minFunc[f] + '</span>';
         }).join('');
-        return '<td class="' + (s.equipe[i] < d.min ? 'falta' : 'sobra') + '">' + s.equipe[i] + '/' + d.min + fx + '</td>';
+        var mn = s.menor[i], ruim = mn && mn.n < d.min;
+        return '<td class="' + (ruim ? 'falta' : 'sobra') + '">' + s.equipe[i] + '/' + d.min +
+          (mn ? '<span class="fcob ' + (ruim ? 'falta' : 'mut') + '">menor ' + mn.n + ' às ' + hCurta(mn.t) + '</span>' : '') + fx + '</td>';
       }).join('') + '<td></td></tr></table></div>';
   });
   el('escRes').innerHTML = html;
@@ -2020,7 +2119,8 @@ function baixarEscalaCsv() {
   e.semanas.forEach(function (s, w) {
     e.pessoas.forEach(function (p, pi) {
       linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome, p.funcao || ''].concat(s.grade[pi].map(function (x, i) {
-        var d = e.dias[i]; return !d.aberto ? 'fechado' : (x === 'T' ? hhmm(d.ini) + '-' + hhmm(d.fim) : (x === 'M' ? hhmm(d.ini) + '-' + hhmm(d.ini + d.meio) : 'Folga'));
+        var d = e.dias[i], jn = janelaCel(x, d), al = s.almoco ? s.almoco[pi][i] : null;
+        return !d.aberto ? 'fechado' : (!jn ? 'Folga' : (x === 'A' ? 'Abre ' : (x === 'C' ? 'Fecha ' : '')) + hhmm(jn.a) + '-' + hhmm(jn.b) + (al !== null ? ' (almoço ' + hhmm(al) + ')' : ''));
       })).concat([hNum(s.min[pi])]));
     });
   });
