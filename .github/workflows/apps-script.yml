@@ -1,12 +1,15 @@
 name: Publicar backend (Apps Script)
-# Todo merge na main que mexer em apps-script/ roda os testes e publica o backend na MESMA implantação (a URL do app não muda).
+# Todo merge na main que mexer em apps-script/ (servidor) ou apps-script-instalador/ (instalador) roda os testes e publica
+# na MESMA implantação de cada um (as URLs não mudam).
 # A publicação precisa de 2 segredos no GitHub (Settings > Secrets and variables > Actions): CLASPRC_JSON e DEPLOYMENT_ID.
-# Sem eles, só os testes rodam (com um aviso). Passo a passo em apps-script/LEIAME.md.
+# (O ID da implantação do instalador não é segredo: fica em apps-script-instalador/DEPLOYMENT_ID.)
+# Sem os segredos, só os testes rodam (com um aviso). Passo a passo em apps-script/LEIAME.md.
 on:
   push:
     branches: [main]
     paths:
       - 'apps-script/**'
+      - 'apps-script-instalador/**'
       - '.github/workflows/apps-script.yml'
   workflow_dispatch: {}
 concurrency:
@@ -25,6 +28,7 @@ jobs:
         run: |
           node apps-script/tests/teste-calculo.js
           node apps-script/tests/teste-contatos.js
+          node apps-script/tests/teste-multicliente.js
       - name: Conferir segredos
         id: seg
         env:
@@ -40,7 +44,7 @@ jobs:
       - name: Instalar clasp
         if: steps.seg.outputs.ok == 'true'
         run: npm install -g @google/clasp@3.3.0
-      - name: Publicar
+      - name: Publicar servidor
         if: steps.seg.outputs.ok == 'true'
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
@@ -50,4 +54,12 @@ jobs:
           cd apps-script
           clasp push -f
           clasp deploy -i "$DEPLOYMENT_ID" -d "github ${GITHUB_SHA::7}"
-          rm -f "$HOME/.clasprc.json"
+      - name: Publicar instalador
+        if: steps.seg.outputs.ok == 'true'
+        run: |
+          cd apps-script-instalador
+          clasp push -f
+          clasp deploy -i "$(tr -d '[:space:]' < DEPLOYMENT_ID)" -d "github ${GITHUB_SHA::7}"
+      - name: Apagar credenciais
+        if: always()
+        run: rm -f "$HOME/.clasprc.json"

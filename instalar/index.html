@@ -54,8 +54,15 @@
     </ul>
   </div>
 
+  <div class="card" id="criarCard">
+    <h2>Criar o app da minha empresa agora</h2>
+    <p class="sub">Entre com a sua conta Google e eu monto tudo nela: a planilha e a pasta de fotos ficam <b>suas</b>. Leva cerca de 1 minuto.</p>
+    <a class="btn2" id="criarJa" href="#" style="margin-top:6px;background:var(--vinho);color:#fff;border-color:var(--vinho)">Criar meu app com a conta Google</a>
+    <p class="lgpd">O Google pode avisar que o app "não foi verificado" (ele está em fase de testes). Toque em <b>Avançado</b> e depois em <b>Acessar</b>. Pedimos só acesso ao que o próprio instalador cria.</p>
+  </div>
+
   <div class="card" id="formCard">
-    <h2>Quero o app</h2>
+    <h2>Prefiro conversar antes</h2>
     <p class="sub">Deixe seu contato e eu te ajudo a colocar para funcionar.</p>
     <form id="f" novalidate autocomplete="on">
       <label for="empresa">Nome da empresa</label>
@@ -84,7 +91,8 @@
       <li><b>Android:</b> abra o app e toque em <b>Instalar app</b> (ou menu ⋮ → Adicionar à tela inicial).</li>
       <li><b>iPhone:</b> abra no Safari, toque em Compartilhar e em <b>Adicionar à Tela de Início</b>.</li>
     </ol>
-    <a class="btn2" id="abrir" href="../">Abrir o app</a>
+    <a class="btn2" id="criarDepois" href="#" style="background:var(--vinho);color:#fff;border-color:var(--vinho)">Criar o app da minha empresa agora</a>
+    <a class="btn2" id="abrir" href="../">Ver o app de demonstração</a>
     <a class="btn2" id="zapdev" href="#" style="display:none">Falar comigo no WhatsApp</a>
   </div>
 </main>
@@ -92,6 +100,14 @@
 // Endereço do servidor (Apps Script). Mesmo do app.
 var API_URL = 'https://script.google.com/macros/s/AKfycbzjST21YKpX_8SPxxPHiqwtRPIycI9dkZfj2539kxcJ-NmrcBtjVdIpeVvupgJfmq3H/exec';
 // WhatsApp de quem atende (somente números, com 55 e DDD, ex.: 5581999990000). Vazio = o botão não aparece.
+// Instalador (roda na conta Google do cliente e cria a planilha e a pasta dele).
+var INSTALADOR_URL = 'https://script.google.com/macros/s/AKfycbwknBg0RlYw4XW4kPG5s9jn0oGIuy_PHyQkCuR7MN2Pg3xQbs_K7I5J4Dq_Q7vYFcwr/exec';
+function linkInstalador(pre) {
+  var q = ['origem=' + encodeURIComponent(origem)];
+  if (pre && pre.empresa) q.push('empresa=' + encodeURIComponent(pre.empresa.slice(0, 80)));
+  if (pre && pre.whatsapp) q.push('whatsapp=' + encodeURIComponent(pre.whatsapp));
+  return INSTALADOR_URL + '?' + q.join('&');
+}
 var WHATSAPP_ATENDIMENTO = '5581997622850';
 
 function el(i) { return document.getElementById(i); }
@@ -106,6 +122,7 @@ el('zap').addEventListener('input', function () {
   this.value = s;
 });
 
+el('criarJa').href = el('criarDepois').href = linkInstalador(null);
 function erro(t) { var e = el('erro'); e.textContent = t || ''; e.style.display = t ? 'block' : 'none'; }
 
 el('f').addEventListener('submit', function (ev) {
@@ -123,7 +140,8 @@ el('f').addEventListener('submit', function (ev) {
     .then(function (r) { return r.json(); })
     .then(function (j) {
       if (!j.ok) throw new Error(j.erro || 'Não foi possível enviar.');
-      el('formCard').style.display = 'none'; el('ok').style.display = 'block'; window.scrollTo(0, 0);
+      el('formCard').style.display = 'none'; el('criarCard').style.display = 'none'; el('ok').style.display = 'block'; window.scrollTo(0, 0);
+      el('criarDepois').href = linkInstalador({ empresa: d.empresa, whatsapp: d.whatsapp });
       if (WHATSAPP_ATENDIMENTO) {
         var a = el('zapdev'); a.style.display = 'block';
         a.href = 'https://wa.me/' + WHATSAPP_ATENDIMENTO + '?text=' + encodeURIComponent('Olá! Conheci o app de ponto pelo cartão e quero saber mais.');

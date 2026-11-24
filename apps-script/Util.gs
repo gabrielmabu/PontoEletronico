@@ -25,7 +25,17 @@ var CAB = {
     'pede_hora', 'sugerir_para', 'ativo', 'sistema', 'grava_como', 'prefixo_obs']
 };
 
+/** Cliente da chamada atual (vem de "c" no corpo do POST). Vazio = o cliente original (planilha em que o script está). */
+var _cliente = '';
+var _ssCliente = null;
+/** Chave de cache/propriedade separada por cliente (cliente original mantém as chaves de sempre). */
+function kc_(k) { return _cliente ? _cliente + ':' + k : k; }
+
 function ss_() {
+  if (_cliente) {
+    if (!_ssCliente) _ssCliente = clientePlanilha_(_cliente);
+    return _ssCliente;
+  }
   return SpreadsheetApp.getActiveSpreadsheet() ||
     SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'));
 }
@@ -125,7 +135,7 @@ var ABAS_CALC = { Batidas: 1, Colaboradores: 1, Config: 1, Jornadas: 1, Feriados
 /** Chame depois de mexer em dados que entram no cálculo. */
 function invalidarCalc_(nomeAba) {
   if (nomeAba && !ABAS_CALC[nomeAba]) return;
-  try { CacheService.getScriptCache().remove('calc_meta'); } catch (e) {}
+  try { CacheService.getScriptCache().remove(kc_('calc_meta')); } catch (e) {}
 }
 
 /** Edição manual na planilha também derruba o cache. */
@@ -133,14 +143,14 @@ function onEdit() { invalidarCalc_(); }
 
 function calcCacheLer_() {
   var c = CacheService.getScriptCache();
-  var meta = c.get('calc_meta');
+  var meta = c.get(kc_('calc_meta'));
   if (!meta) return null;
   try {
     var m = JSON.parse(meta);
     if (m.dia !== diaStr_(new Date())) return null;
-    var chaves = []; for (var i = 0; i < m.n; i++) chaves.push('calc_' + i);
+    var chaves = []; for (var i = 0; i < m.n; i++) chaves.push(kc_('calc_' + i));
     var got = c.getAll(chaves), s = '';
-    for (var j = 0; j < m.n; j++) { if (!got['calc_' + j]) return null; s += got['calc_' + j]; }
+    for (var j = 0; j < m.n; j++) { if (!got[kc_('calc_' + j)]) return null; s += got[kc_('calc_' + j)]; }
     var bytes = Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(s), 'application/x-gzip')).getDataAsString();
     return JSON.parse(bytes);
   } catch (e) { return null; }
@@ -150,11 +160,10 @@ function calcCacheGravar_(obj) {
   try {
     var s = Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(JSON.stringify(obj), 'application/json')).getBytes());
     var t = {}, n = 0;
-    for (var p = 0; p < s.length; p += 90000) { t['calc_' + n] = s.substr(p, 90000); n++; }
-    t.calc_meta = JSON.stringify({ n: n, dia: diaStr_(new Date()) });
-    var meta = t.calc_meta; delete t.calc_meta;
+    for (var p = 0; p < s.length; p += 90000) { t[kc_('calc_' + n)] = s.substr(p, 90000); n++; }
+    var meta = JSON.stringify({ n: n, dia: diaStr_(new Date()) });
     var c = CacheService.getScriptCache();
     c.putAll(t, 21600);
-    c.put('calc_meta', meta, 21600);   // por último: só vale com todos os pedaços gravados
+    c.put(kc_('calc_meta'), meta, 21600);   // por último: só vale com todos os pedaços gravados
   } catch (e) { console.error(e); }
 }

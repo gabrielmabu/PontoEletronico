@@ -29,6 +29,7 @@ function sessaoPersistente_(token) {
   if (!raw) return null;
   var s = JSON.parse(raw);
   if (s.exp < Date.now()) { p.deleteProperty('sess_' + token); return null; }
+  if ((s.c || '') !== _cliente) return null;   // token de outro cliente não vale aqui
   return s;
 }
 
@@ -40,7 +41,7 @@ function encerrarSessoesDe_(idColab) {
     if (k.indexOf('sess_') !== 0) return;
     try {
       var s = JSON.parse(todas[k]);
-      if (String(s.id) === String(idColab) || s.exp < Date.now()) p.deleteProperty(k);
+      if ((String(s.id) === String(idColab) && (s.c || '') === _cliente) || s.exp < Date.now()) p.deleteProperty(k);
     } catch (e) { p.deleteProperty(k); }
   });
 }
@@ -51,7 +52,8 @@ function sessao_(token, exigirAdmin) {
   var raw = cache.get('sess_' + token);
   var s = raw ? JSON.parse(raw) : sessaoPersistente_(token);
   if (!s) throw new Error('SESSAO_EXPIRADA');
-  if (!raw) cache.put('sess_' + token, JSON.stringify({ id: s.id }), 21600);
+  if ((s.c || '') !== _cliente) throw new Error('SESSAO_EXPIRADA');
+  if (!raw) cache.put('sess_' + token, JSON.stringify({ id: s.id, c: _cliente }), 21600);
   var c = colaboradorPorId_(s.id);
   if (!c || c.ativo !== 'SIM') throw new Error('SESSAO_EXPIRADA');
   if (exigirAdmin && c.perfil !== 'ADMIN') throw new Error('Acesso restrito ao administrador.');
@@ -73,30 +75,30 @@ function apiLogin(login, senha, lembrar) {
   login = String(login || '').trim();
   var chave = normalizar_(login);
   var cache = CacheService.getScriptCache();
-  if (cache.get('bloq_' + chave)) {
+  if (cache.get(kc_('bloq_' + chave))) {
     throw new Error('Muitas tentativas erradas. Aguarde 15 minutos e tente de novo.');
   }
   var c = colaboradorPorLogin_(login);
   var ok = c && c.ativo === 'SIM' && hashSenha_(String(senha || ''), c.senha_salt) === c.senha_hash;
   if (!ok) {
-    var n = Number(cache.get('falha_' + chave) || 0) + 1;
+    var n = Number(cache.get(kc_('falha_' + chave)) || 0) + 1;
     if (n >= MAX_TENTATIVAS) {
-      cache.put('bloq_' + chave, '1', BLOQUEIO_SEG);
-      cache.remove('falha_' + chave);
+      cache.put(kc_('bloq_' + chave), '1', BLOQUEIO_SEG);
+      cache.remove(kc_('falha_' + chave));
       log_(login, 'LOGIN_BLOQUEADO', MAX_TENTATIVAS + ' tentativas erradas');
       throw new Error('Muitas tentativas erradas. Acesso bloqueado por 15 minutos.');
     }
-    cache.put('falha_' + chave, String(n), BLOQUEIO_SEG);
+    cache.put(kc_('falha_' + chave), String(n), BLOQUEIO_SEG);
     log_(login, 'LOGIN_FALHOU', 'tentativa ' + n);
     throw new Error('Login ou senha inválidos. Tentativas restantes: ' + (MAX_TENTATIVAS - n));
   }
-  cache.remove('falha_' + chave);
+  cache.remove(kc_('falha_' + chave));
   var token = Utilities.getUuid();
   var horas = Number(cfg_('sessao_horas', 12));
-  cache.put('sess_' + token, JSON.stringify({ id: c.id }), Math.min(horas * 3600, 21600));
+  cache.put('sess_' + token, JSON.stringify({ id: c.id, c: _cliente }), Math.min(horas * 3600, 21600));
   if (lembrar) {
     PropertiesService.getScriptProperties().setProperty('sess_' + token,
-      JSON.stringify({ id: c.id, exp: Date.now() + DIAS_LEMBRAR * 864e5 }));
+      JSON.stringify({ id: c.id, c: _cliente, exp: Date.now() + DIAS_LEMBRAR * 864e5 }));
   }
   log_(c.login, 'LOGIN', lembrar ? 'manter conectado' : '');
   return { token: token, usuario: perfilPublico_(c) };

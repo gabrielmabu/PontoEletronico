@@ -13,7 +13,8 @@ var MAX_ANEXO_MB = 8;
 function pastaPorConfig_(chave, nome) {
   var id = cfg_(chave, '');
   if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
-  var p = DriveApp.createFolder(nome);
+  var raizId = cfg_('pasta_selfies_id', '');
+  var p = (_cliente && raizId) ? DriveApp.getFolderById(raizId).createFolder(nome) : DriveApp.createFolder(nome);   // cliente novo: dentro da pasta da conta dele
   var a = aba_('Config');
   var linhas = lerObjetos_('Config').filter(function (o) { return o.chave === chave; });
   if (linhas.length) atualizarLinha_('Config', linhas[0]._linha, { valor: p.getId() });

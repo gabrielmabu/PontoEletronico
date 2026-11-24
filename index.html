@@ -709,8 +709,20 @@ var LIB = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-ap
 var S = { token: null, usuario: null, estado: null, fotosCad: [], admin: null };
 
 function el(id) { return document.getElementById(id); }
-function guardar(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
-function ler(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+/** Cliente deste app: vem de ?c=... no link (o instalador entrega o link com ele) e fica guardado no aparelho. Vazio = cliente original. */
+var CLIENTE = (function () {
+  var c = '', p = null;
+  try { p = new URLSearchParams(location.search).get('c'); } catch (e) {}
+  var norm = function (v) { v = String(v || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40); return (v === 'luciana' || v === 'padrao') ? '' : v; };
+  try {
+    if (p !== null) { c = norm(p); if (c) localStorage.setItem('cliente', c); else localStorage.removeItem('cliente'); }
+    else c = norm(localStorage.getItem('cliente'));
+  } catch (e) { c = norm(p); }
+  return c;
+})();
+function chaveLocal(k) { return CLIENTE ? CLIENTE + ':' + k : k; }
+function guardar(k, v) { try { v === null ? localStorage.removeItem(chaveLocal(k)) : localStorage.setItem(chaveLocal(k), v); } catch (e) {} }
+function ler(k) { try { return localStorage.getItem(chaveLocal(k)); } catch (e) { return null; } }
 function carregando(txt) { if (txt) { el('loadTxt').textContent = txt; el('load').classList.remove('hide'); } else el('load').classList.add('hide'); }
 function msg(id, txt, ok) { var m = el(id); m.textContent = txt || ''; m.className = 'msg' + (txt ? (ok ? ' ok' : ' err') : ''); }
 function normalizar(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); }
@@ -721,7 +733,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbzjST21YKpX_8SPxxPHiqwtRP
 function api(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
   if (!navigator.onLine) return Promise.reject(new Error('Sem internet. Conecte-se e tente de novo.'));
-  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }) })
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(CLIENTE ? { fn: fn, args: args, c: CLIENTE } : { fn: fn, args: args }) })
     .then(function (r) { return r.json(); })
     .then(function (r) {
       if (r.ok) return r.dados;
@@ -1610,7 +1622,7 @@ function editarColab(id) {
   el('aFormTit').textContent = id ? 'Editar ' + c.nome : 'Novo colaborador';
   el('cId').value = c.id || ''; el('cNome').value = c.nome || ''; el('cLogin').value = c.login || '';
   el('cCargo').value = c.cargo || ''; el('cSal').value = vBR(c.salario); el('cPas').value = vBR(c.passagem);
-  el('cAbo').value = c.abono || ''; el('cDes').value = vBR(c.desconto === undefined ? 13.66 : c.desconto);
+  el('cAbo').value = c.abono || ''; el('cDes').value = vBR(c.desconto === undefined ? (CLIENTE ? 0 : 13.66) : c.desconto);
   el('cPerfil').value = c.perfil || 'COLABORADOR'; el('cAtivo').value = c.ativo === false ? '0' : '1';
   el('aForm').classList.remove('hide'); el('aForm').scrollIntoView();
 }
@@ -2965,6 +2977,28 @@ function avisoNovaVersao() {
 }
 function tirarSplash() { var s = el('splash'); if (s && !s.classList.contains('sai')) { s.classList.add('sai'); setTimeout(function () { s.remove(); }, 400); } }
 setTimeout(tirarSplash, 4000);   // nunca prende a tela
+
+// ---------- Marca do cliente ----------
+function aplicarMarca(m) {
+  var nome = (m && m.empresa) || 'Ponto';
+  document.title = 'Ponto · ' + nome;
+  [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img'), function (i) { i.src = 'icons/neutro-192.png'; i.alt = nome; });
+  var lg = document.querySelector('.login-logo'); if (lg) { lg.style.width = '96px'; lg.style.borderRadius = '22px'; lg.style.margin = '0 auto 10px'; }
+  var t = el('tit'); if (t) t.textContent = nome;
+  var ap = document.querySelector('link[rel="apple-touch-icon"]'); if (ap) ap.href = 'icons/neutro-180.png';
+  var ic = document.querySelector('link[rel="icon"]'); if (ic) ic.href = 'icons/neutro-192.png';
+  var ti = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (ti) ti.content = nome.slice(0, 20);
+  var base = location.href.split('?')[0].replace(/[^\/]*$/, '');
+  try {
+    var mf = { name: 'Ponto · ' + nome, short_name: nome.slice(0, 12), description: 'Registro de ponto com reconhecimento facial e localização', lang: 'pt-BR',
+      start_url: base + '?c=' + CLIENTE, scope: base, display: 'standalone', orientation: 'portrait', background_color: '#70122D', theme_color: '#70122D',
+      icons: [{ src: base + 'icons/neutro-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'icons/neutro-512.png', sizes: '512x512', type: 'image/png' },
+        { src: base + 'icons/neutro-512-mask.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }] };
+    var lk = document.querySelector('link[rel="manifest"]');
+    if (lk) lk.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' }));
+  } catch (e) {}
+}
+if (CLIENTE) api('apiMarca').then(aplicarMarca).catch(function (e) { var m = el('lMsg'); if (m) msg('lMsg', e.message); });
 
 // ---------- Início ----------
 (function () {

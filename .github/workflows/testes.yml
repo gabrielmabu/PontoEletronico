@@ -12,3 +12,4 @@ jobs:
       - run: node teste-escala-turnos.js
       - run: node apps-script/tests/teste-calculo.js
       - run: node apps-script/tests/teste-contatos.js
+      - run: node apps-script/tests/teste-multicliente.js

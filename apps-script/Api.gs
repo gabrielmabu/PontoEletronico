@@ -6,9 +6,10 @@
  */
 function doPost(e) {
   var saida;
-  _memoOn = true; _memo = {};
+  _memoOn = true; _memo = {}; _cliente = ''; _ssCliente = null; _cfgCache = null;
   try {
     var req = JSON.parse(e.postData.contents);
+    _cliente = normalizarCliente_(req.c);
     var fn = String(req.fn || '');
     if (!/^api[A-Z]\w*$/.test(fn) || typeof this[fn] !== 'function') throw new Error('Função inválida.');
     var args = Array.isArray(req.args) ? req.args : [];

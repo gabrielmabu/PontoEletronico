@@ -8,7 +8,7 @@ var CONTATOS_CAB = ['criado_em', 'empresa', 'responsavel', 'whatsapp_e164', 'ema
   'aceite_em', 'origem', 'status', 'visitas', 'ultimo_contato', 'observacao'];
 var CONTATOS_FAIXAS = ['1 a 5', '6 a 15', '16 a 50', 'mais de 50'];
 
-function contatosPlanilha_() {
+function contatosSS_() {
   var props = PropertiesService.getScriptProperties(), id = props.getProperty('CONTATOS_SS'), ss = null;
   if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
   if (!ss) {
@@ -19,8 +19,10 @@ function contatosPlanilha_() {
     a.setFrozenRows(1);
     a.getRange('D:D').setNumberFormat('@');   // WhatsApp como texto (senão o + some)
   }
-  return ss.getSheetByName('Contatos') || ss.getSheets()[0];
+  return ss;
 }
+
+function contatosPlanilha_() { var ss = contatosSS_(); return ss.getSheetByName('Contatos') || ss.getSheets()[0]; }
 
 function contatoTexto_(v, max) {
   var s = String(v === undefined || v === null ? '' : v).replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);

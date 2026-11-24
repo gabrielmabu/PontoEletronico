@@ -57,7 +57,7 @@ function apiAdminResetSenha(token, id) {
   atualizarLinha_('Colaboradores', c._linha, {
     senha_salt: salt, senha_hash: hashSenha_(String(cfg_('senha_padrao', senhaInicial_())), salt), primeiro_acesso: 'SIM'
   });
-  CacheService.getScriptCache().remove('bloq_' + normalizar_(c.login));
+  CacheService.getScriptCache().remove(kc_('bloq_' + normalizar_(c.login)));
   encerrarSessoesDe_(c.id);
   log_(adm.login, 'RESET_SENHA', c.login);
   return 'Senha de ' + c.nome + ' voltou para a senha padrão.';
