@@ -1,6 +1,6 @@
 /* Service worker do Ponto: deixa o app abrir rápido e guarda os modelos do rosto.
    As chamadas ao servidor (script.google.com) NUNCA passam pelo cache. */
-var VERSAO = 'ponto-v17';
+var VERSAO = 'ponto-v18';
 var SHELL = ['./', './index.html', './logo.jpg', './manifest.webmanifest', './escala-turnos.js', './marca-util.js', './regras/trabalhistas.json', './icons/icon-192.png', './icons/neutro-192.png'];
 
 self.addEventListener('install', function (e) {

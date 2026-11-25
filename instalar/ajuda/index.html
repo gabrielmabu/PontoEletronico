@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Como autorizar no Google · Ponto facial</title>
+<meta name="description" content="Passo a passo, com as telas reais, para criar o app de ponto na sua conta Google.">
+<meta name="theme-color" content="#70122D">
+<link rel="icon" href="../../icons/neutro-192.png">
+<style>
+  :root { --vinho:#70122D; --claro:#F6ECEF; --bg:#FAF6F4; --txt:#2A1A20; --mut:#7D6B72; --bd:#ECE2E5; --ok:#2E7D4F; --aviso:#8A5A00; --aviso-bg:#FFF4DC; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.55 -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+  .topo { background:var(--vinho); color:#fff; padding:calc(18px + env(safe-area-inset-top)) 18px 50px; text-align:center; }
+  .topo h1 { margin:0 0 6px; font:600 26px/1.2 Georgia, serif; } .topo p { margin:0 auto; max-width:520px; opacity:.92; font-size:15px; }
+  main { max-width:640px; margin:-30px auto 0; padding:0 16px calc(40px + env(safe-area-inset-bottom)); }
+  .card { background:#fff; border:1px solid var(--bd); border-radius:18px; padding:18px; box-shadow:0 8px 24px rgba(112,18,45,.07); margin-bottom:16px; }
+  .passo { display:flex; gap:12px; align-items:flex-start; margin-bottom:10px; }
+  .n { flex:0 0 32px; height:32px; border-radius:50%; background:var(--vinho); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  h2 { margin:2px 0 4px; font:600 19px Georgia, serif; color:var(--vinho); }
+  .passo p { margin:0; }
+  figure { margin:12px 0 0; } figure img { display:block; width:100%; max-width:460px; margin:0 auto; border:1px solid var(--bd); border-radius:12px; }
+  figcaption { text-align:center; color:var(--mut); font-size:13px; margin-top:6px; }
+  .clique { background:var(--claro); color:var(--vinho); font-weight:700; padding:1px 7px; border-radius:6px; white-space:nowrap; }
+  .talvez { background:var(--aviso-bg); color:var(--aviso); border-radius:12px; padding:10px 12px; font-size:14px; margin-top:10px; }
+  .ok { background:#EAF5EE; color:#1F5A38; border-radius:12px; padding:12px 14px; font-size:14.5px; }
+  .btn { display:block; text-align:center; margin-top:12px; padding:14px; border-radius:14px; background:var(--vinho); color:#fff; font-weight:600; text-decoration:none; }
+  .mut { color:var(--mut); font-size:13.5px; }
+  ul { padding-left:20px; margin:8px 0 0; } li { margin:4px 0; }
+</style>
+</head>
+<body>
+<div class="topo">
+  <h1>Como autorizar no Google</h1>
+  <p>Para o app ficar na <b>sua</b> conta Google, o Google pede a sua autorização. São as telas abaixo (fotos reais). Leva uns 2 minutos.</p>
+</div>
+<main>
+  <div class="card">
+    <b>O que o app pode acessar (e o que não pode)</b>
+    <ul>
+      <li>✅ <b>Só os arquivos que o próprio instalador cria:</b> a planilha do ponto e a pasta de fotos.</li>
+      <li>✅ O seu <b>e-mail</b>, para saber em qual conta criar.</li>
+      <li>🚫 <b>Não</b> enxerga o resto do seu Drive, seus e-mails nem seus contatos.</li>
+    </ul>
+    <p class="mut" style="margin:10px 0 0">Para o app funcionar, a conta que opera o sistema recebe acesso de editor só a essa planilha e a essa pasta. Você pode tirar esse acesso quando quiser no seu Google Drive (mas aí o app para).</p>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">1</span><div><h2>Autorização necessária</h2><p>Ao tocar em "Criar meu app com a conta Google", aparece esta tela. Toque em <span class="clique">REVIEW PERMISSIONS</span> (Revisar permissões).</p></div></div>
+    <figure><img src="1-autorizacao.png" alt="Tela 'Ponto - Instalador needs your permission' com o botão Review permissions" loading="lazy"><figcaption>Uma janela nova do Google vai abrir.</figcaption></figure>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">2</span><div><h2>Escolha a sua conta</h2><p>Se o Google perguntar, escolha a conta da <b>empresa</b> (é nela que a planilha vai ficar). Depois toque em <span class="clique">Continuar</span>.</p></div></div>
+    <figure><img src="4-conta.png" alt="Tela 'Fazer login no serviço Ponto - Instalador' com a conta e o botão Continuar" loading="lazy"><figcaption>O e-mail foi escondido na foto.</figcaption></figure>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">3</span><div><h2>Se aparecer "O Google não verificou este app"</h2><p>O app ainda está em fase de testes com o Google. Toque em <span class="clique">Avançado</span>…</p></div></div>
+    <figure><img src="2-nao-verificado.png" alt="Tela 'O Google não verificou este app' com o link Avançado" loading="lazy"></figure>
+    <p style="margin-top:12px">…e depois em <span class="clique">Acessar Ponto - Instalador (não seguro)</span>.</p>
+    <figure><img src="3-avancado.png" alt="Tela com o link 'Acessar Ponto - Instalador (não seguro)'" loading="lazy"></figure>
+    <div class="talvez">Essa tela pode <b>nem aparecer</b> para você: ela só surge quando o Google ainda não revisou o app. Se não aparecer, pule para o passo 4.</div>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">4</span><div><h2>Confira o que o app pode acessar</h2><p>A lista mostra só "arquivos do Google Drive <b>que você usa com este app</b>". Deixe marcado e toque em <span class="clique">Continuar</span>.</p></div></div>
+    <figure><img src="5-permissoes.png" alt="Tela 'O app Ponto - Instalador quer acessar sua Conta do Google' com a permissão de arquivos do Drive" loading="lazy"><figcaption>A janela fecha sozinha e o formulário aparece.</figcaption></figure>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">5</span><div><h2>Preencha os dados e a marca</h2><p>Nome da empresa, seu nome, WhatsApp e a <b>senha de gestão</b> (é com ela que você entra como administrador). Se quiser, já coloque a <b>logo</b>: as cores são sugeridas a partir dela. Marque "Entendi onde ficam os dados" e toque em <span class="clique">Criar meu app</span>.</p></div></div>
+    <figure><img src="6-formulario.png" alt="Formulário 'Criar meu app de ponto' com dados da empresa e a parte Sua marca" loading="lazy"></figure>
+  </div>
+
+  <div class="card">
+    <div class="passo"><span class="n">6</span><div><h2>Pronto!</h2><p>Em cerca de 30 segundos aparece o link do seu app. <b>Guarde esse link</b> e anote a senha dos colaboradores no 1º acesso.</p></div></div>
+    <figure><img src="7-pronto.png" alt="Tela 'Pronto! Seu app está criado' com o link do app e os próximos passos" loading="lazy"><figcaption>O link e a senha foram escondidos na foto.</figcaption></figure>
+    <div class="ok" style="margin-top:12px">Ao entrar como <b>admin</b> pela primeira vez, um <b>tour</b> mostra os 3 passos finais: marcar a loja, cadastrar a equipe e enviar o app para todo mundo.</div>
+  </div>
+
+  <div class="card">
+    <b>Deu algum erro?</b>
+    <p style="margin:6px 0 0">Abra o link do instalador de novo: ele reaproveita o que já criou, sem duplicar nada. Se continuar, mande um print da tela no WhatsApp.</p>
+    <a class="btn" href="../?origem=ajuda">Voltar e criar meu app</a>
+  </div>
+</main>
+</body>
+</html>
