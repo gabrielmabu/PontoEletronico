@@ -1346,7 +1346,7 @@ function carregarMinhasSolic() {
 }
 
 // ---------- Admin ----------
-var CFG_SUBS = ['regras', 'tipos', 'loja'], cfgAtual = 'regras';
+var CFG_SUBS = ['regras', 'tipos', 'loja', 'marca'], cfgAtual = 'regras';
 /** Configurações: Regras, Tipos de ajuste e Loja numa aba só, com sub-abas. */
 function mostrarConfig(sub) {
   cfgAtual = sub || cfgAtual;
@@ -3119,15 +3119,41 @@ function mkSalvar() {
 
 // ---------- Tour do primeiro acesso do administrador ----------
 function linkDoApp() { return location.href.split('?')[0].split('#')[0] + (CLIENTE ? '?c=' + CLIENTE : ''); }
+function tourIr(t) { return function () { abaAdmin(t); window.scrollTo(0, 0); }; }
 var TOUR = [
-  { t: 'Bem-vindo(a)!', p: function () { return 'Este é o painel de gestão do ponto' + (MARCA && MARCA.empresa ? ' da <b>' + esc(MARCA.empresa) + '</b>' : '') + '. Em 3 passos o app fica pronto para a equipe. Leva uns 5 minutos.'; } },
-  { t: '1. Marque a loja', ir: function () { document.querySelector('#aTabs button[data-t="config"]').click(); mostrarConfig('loja'); },
-    p: function () { return 'Esteja <b>dentro da loja</b> e toque em <b>Usar minha localização</b>. Depois ajuste o raio (150 m costuma ser bom) e salve. Só dá para bater ponto dentro desse raio.'; } },
-  { t: '2. Cadastre a equipe', ir: function () { document.querySelector('#aTabs button[data-t="colab"]').click(); },
-    p: function () { return 'Toque em <b>Novo colaborador</b> para cada pessoa: nome, login, cargo e salário. No 1º acesso cada um usa a <b>senha padrão</b> (está em Configurações → Regras → Senhas) e cria a própria senha.'; } },
-  { t: '3. Envie o app para a equipe', ir: function () { document.querySelector('#aTabs button[data-t="aovivo"]').click(); },
+  { t: 'Bem-vindo(a)!', p: function () { return 'Este é o painel de gestão do ponto' + (MARCA && MARCA.empresa ? ' da <b>' + esc(MARCA.empresa) + '</b>' : '') + '. O tour passa por todas as telas, em 4 partes:<br>' +
+    '<b>1. Configurar</b> (uma vez só) · <b>2. Dia a dia</b> · <b>3. Fechar o mês</b> · <b>4. Planejar a escala</b>.<br>Leva uns 5 minutos. Pode pular quando quiser e rever depois em <b>❔ Tour</b>.'; } },
+  // 1. Configurar
+  { t: 'Configurar · Loja', ir: tourIr('loja'),
+    p: function () { return 'Esteja <b>dentro da loja</b> e toque em <b>Usar minha localização</b>. Ajuste o raio (150 m costuma ser bom) e salve. Só dá para bater ponto dentro desse raio.'; } },
+  { t: 'Configurar · Regras e jornada', ir: tourIr('regras'),
+    p: function () { return 'Aqui ficam as regras que valem para todos:<br>• <b>Jornada</b>: horas por dia de segunda a sexta, sábado e domingo. É a base do saldo e do banco de horas.<br>• <b>Valores</b> do fechamento (desconto, abono).<br>• <b>Senhas</b>: a senha padrão do 1º acesso da equipe e a sua senha de gestão.<br>• <b>Feriados</b>: não contam como dia útil nem geram "sem registro".'; } },
+  { t: 'Configurar · Tipos de ajuste', ir: tourIr('tipos'),
+    p: function () { return 'Cada ajuste (atestado, folga, abonar atraso, esqueceu de bater...) tem um cartão que mostra, em uma linha, o que ele faz com as <b>horas do dia</b>, o <b>banco de horas</b> e o <b>pagamento</b>.<br>Ligue ou desligue no interruptor, toque em <b>Editar</b> para ver a simulação com a sua jornada, ou crie um <b>+ Novo tipo</b> com as regras da sua empresa.'; } },
+  { t: 'Configurar · Marca', ir: tourIr('marca'),
+    p: function () { return 'Logo, cores e fontes da empresa. Valem para o app de toda a equipe, para os PDFs e para o ícone na tela do celular.'; } },
+  { t: 'Configurar · Equipe', ir: tourIr('colab'),
+    p: function () { return 'Toque em <b>+ Novo colaborador</b> para cada pessoa: nome, login, cargo, salário e passagem. O <b>cargo</b> vira a função na escala. No 1º acesso cada um entra com a <b>senha padrão</b> e cria a própria.'; } },
+  { t: 'Configurar · Envie o app', ir: tourIr('aovivo'),
     p: function () { return 'Mande este link no grupo da equipe:<br><code>' + esc(linkDoApp()) + '</code><br>Cada pessoa abre no celular, toca em <b>Instalar app</b> e cadastra o rosto no primeiro acesso. <span class="lk" onclick="copiarLinkApp(this)">copiar link</span>'; } },
-  { t: 'Pronto!', p: function () { return 'Acompanhe as batidas em <b>Ao vivo</b> e feche o mês em <b>Fechamento</b>. Logo, cores e fontes ficam em Configurações → <b>Marca</b>. Para ver este tour de novo, toque em <b>❔ Tour</b> no topo.'; } }
+  // 2. Dia a dia
+  { t: 'Dia a dia · Ao vivo', ir: tourIr('aovivo'),
+    p: function () { return 'As batidas de hoje, na hora: quem já chegou, quem está no almoço e quem ainda não bateu. Troque a data para ver outro dia.'; } },
+  { t: 'Dia a dia · Tratamento', ir: tourIr('tratamento'),
+    p: function () { return 'Pedidos de abono que a equipe faz pelo app (atestado, consulta, esquecimento). Você <b>aprova ou recusa</b> com um toque e o ajuste já entra no espelho. O número no menu mostra quantos estão esperando.'; } },
+  { t: 'Dia a dia · Recusadas', ir: tourIr('recusadas'),
+    p: function () { return 'Batidas que o app <b>não aceitou</b> nos últimos 30 dias: rosto que não conferiu ou pessoa fora do raio da loja. Se for sempre a mesma pessoa, refaça o cadastro do rosto ou revise o raio.'; } },
+  { t: 'Dia a dia · Ajustar ponto', ir: tourIr('ajuste'),
+    p: function () { return 'Para lançar à mão: batida esquecida, atestado, folga, abono de horas. Escolha <b>o que você quer fazer</b> e o app explica o efeito antes de salvar. A batida original <b>nunca é apagada</b>: fica registrada no Log com a sua justificativa.'; } },
+  // 3. Fechar o mês
+  { t: 'Fechar o mês · Espelho', ir: tourIr('espelho'),
+    p: function () { return 'O espelho de ponto de cada pessoa, dia a dia. O app marca os dias com <b>diferença</b> (atraso, hora a mais, batida faltando) e <b>sugere o ajuste</b>: toque na sugestão e pronto. Gera PDF de uma pessoa ou de todos.'; } },
+  { t: 'Fechar o mês · Fechamento', ir: tourIr('fechamento'),
+    p: function () { return 'O mês de todos numa tela: dias pagos, horas, saldo, <b>banco de horas acumulado</b>, salário e passagem. No topo aparecem as <b>pendências</b> (dia sem registro, batida faltando, banco muito negativo). Baixe o PDF ou crie a aba na planilha.'; } },
+  // 4. Planejar
+  { t: 'Planejar · Escala', ir: function () { abaAdmin('escala'); var n = document.querySelector('.esc-nav'); if (n) n.scrollIntoView({ block: 'center' }); },
+    p: function () { return 'Três partes, cada uma com a sua planilha (CSV):<br>• <b>🏖 Férias</b>: calendário e sugestão de data pela CLT.<br>• <b>📅 Escala 5x2</b>: o app lê a rotina real da equipe e mostra o que não cabe na lei nova (42 h a partir de 16/12/2026). Toque em <b>✨ Sugerir folgas</b> até não sobrar irregularidade.<br>• <b>🔄 Escala por turnos</b>: para 2 ou 3 turnos, com descanso mínimo e aviso de "precisa contratar".'; } },
+  { t: 'Pronto!', ir: tourIr('aovivo'), p: function () { return 'Comece pela parte <b>1. Configurar</b>, se ainda não fez. Para ver este tour de novo, toque em <b>❔ Tour</b> no topo.'; } }
 ];
 var tourPasso = 0;
 function copiarLinkApp(e) { try { navigator.clipboard.writeText(linkDoApp()); e.textContent = 'copiado!'; } catch (x) {} }
