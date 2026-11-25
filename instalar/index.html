@@ -163,7 +163,7 @@ el('f').addEventListener('submit', function (ev) {
       el('criarDepois').href = linkInstalador({ empresa: d.empresa, whatsapp: d.whatsapp });
       if (WHATSAPP_ATENDIMENTO) {
         var a = el('zapdev'); a.style.display = 'block';
-        a.href = 'https://wa.me/' + WHATSAPP_ATENDIMENTO + '?text=' + encodeURIComponent('Olá! Conheci o app de ponto pelo cartão e quero saber mais.');
+        a.href = 'https://wa.me/' + WHATSAPP_ATENDIMENTO + '?text=' + encodeURIComponent('Olá! Conheci o app de ponto ' + ({ cartao: 'pelo cartão', instagram: 'pelo Instagram', whatsapp: 'pelo WhatsApp', indicacao: 'por indicação' }[origem] || 'pelo site') + ' e quero saber mais.');
       }
     })
     .catch(function (e) { erro(e.message === 'Failed to fetch' ? 'Sem conexão. Confira a internet e tente de novo.' : e.message); b.disabled = false; b.textContent = 'Quero testar o app'; });
