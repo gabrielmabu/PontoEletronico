@@ -46,8 +46,43 @@ function encerrarSessoesDe_(idColab) {
   });
 }
 
+/**
+ * "Manter conectado" sem guardar nada no servidor: o token é assinado (HMAC-SHA256) e carrega quem é, de qual cliente,
+ * até quando vale e um pedaço do "sal" da senha. Trocar ou resetar a senha muda o sal e derruba o token na hora.
+ * (Antes ficava em Propriedades do script, que têm limite de ~500 KB no total: com muitos clientes parava de funcionar.)
+ * Formato: v2.<dados em base64url>.<assinatura em base64url>
+ */
+function segredoToken_() {
+  var p = PropertiesService.getScriptProperties(), s = p.getProperty('TOKEN_SEGREDO');
+  if (!s) { s = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''); p.setProperty('TOKEN_SEGREDO', s); }
+  return s;
+}
+function assinar_(dados) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(dados, segredoToken_())).replace(/=+$/, ''); }
+function criarTokenLembrar_(c) {
+  var dados = Utilities.base64EncodeWebSafe(JSON.stringify({ u: String(c.id), c: _cliente, e: Date.now() + DIAS_LEMBRAR * 864e5, s: String(c.senha_salt || '').slice(0, 8) })).replace(/=+$/, '');
+  return 'v2.' + dados + '.' + assinar_(dados);
+}
+/** Devolve o colaborador do token assinado, ou null se inválido/expirado/de outro cliente/senha trocada. */
+function lerTokenLembrar_(token) {
+  var p = String(token).split('.');
+  if (p.length !== 3 || p[0] !== 'v2' || !p[1] || !p[2]) return null;
+  if (assinar_(p[1]) !== p[2]) return null;
+  var o;
+  try { o = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(p[1] + '==='.slice((p[1].length + 3) % 4))).getDataAsString()); } catch (e) { return null; }
+  if (!o || o.e < Date.now() || (o.c || '') !== _cliente) return null;
+  var c = colaboradorPorId_(o.u);
+  if (!c || String(c.senha_salt || '').slice(0, 8) !== o.s) return null;
+  return c;
+}
+
 function sessao_(token, exigirAdmin) {
   if (!token) throw new Error('SESSAO_EXPIRADA');
+  if (String(token).indexOf('v2.') === 0) {
+    var cv = lerTokenLembrar_(token);
+    if (!cv || cv.ativo !== 'SIM') throw new Error('SESSAO_EXPIRADA');
+    if (exigirAdmin && cv.perfil !== 'ADMIN') throw new Error('Acesso restrito ao administrador.');
+    return cv;
+  }
   var cache = CacheService.getScriptCache();
   var raw = cache.get('sess_' + token);
   var s = raw ? JSON.parse(raw) : sessaoPersistente_(token);
@@ -93,12 +128,12 @@ function apiLogin(login, senha, lembrar) {
     throw new Error('Login ou senha inválidos. Tentativas restantes: ' + (MAX_TENTATIVAS - n));
   }
   cache.remove(kc_('falha_' + chave));
-  var token = Utilities.getUuid();
-  var horas = Number(cfg_('sessao_horas', 12));
-  cache.put('sess_' + token, JSON.stringify({ id: c.id, c: _cliente }), Math.min(horas * 3600, 21600));
-  if (lembrar) {
-    PropertiesService.getScriptProperties().setProperty('sess_' + token,
-      JSON.stringify({ id: c.id, c: _cliente, exp: Date.now() + DIAS_LEMBRAR * 864e5 }));
+  var token;
+  if (lembrar) token = criarTokenLembrar_(c);   // nada guardado no servidor
+  else {
+    token = Utilities.getUuid();
+    var horas = Number(cfg_('sessao_horas', 12));
+    cache.put('sess_' + token, JSON.stringify({ id: c.id, c: _cliente }), Math.min(horas * 3600, 21600));
   }
   log_(c.login, 'LOGIN', lembrar ? 'manter conectado' : '');
   return { token: token, usuario: perfilPublico_(c) };

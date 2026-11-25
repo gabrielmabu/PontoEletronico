@@ -50,7 +50,11 @@ const ctx = {
   Utilities: {
     getUuid: () => crypto.randomUUID(), DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
     computeDigest: (alg, s) => Array.from(crypto.createHash('sha256').update(s, 'utf8').digest(), b => (b > 127 ? b - 256 : b)),
-    formatDate: (d, tz, f) => d.toISOString().slice(0, 10), newBlob: () => ({}), gzip: () => ({ getBytes: () => [] })
+    formatDate: (d, tz, f) => d.toISOString().slice(0, 10), gzip: () => ({ getBytes: () => [] }),
+    computeHmacSha256Signature: (v, k) => Array.from(crypto.createHmac('sha256', k).update(v, 'utf8').digest(), b => (b > 127 ? b - 256 : b)),
+    base64EncodeWebSafe: x => Buffer.from(typeof x === 'string' ? Buffer.from(x, 'utf8') : x.map(b => b & 255)).toString('base64url'),
+    base64DecodeWebSafe: s => Array.from(Buffer.from(s, 'base64url'), b => (b > 127 ? b - 256 : b)),
+    newBlob: bytes => ({ getDataAsString: () => Buffer.from((bytes || []).map(b => b & 255)).toString('utf8') })
   },
   ContentService: { createTextOutput: s => ({ txt: s, setMimeType() { return this; } }), MimeType: { JSON: 'json' } }
 };
@@ -120,6 +124,20 @@ const mk2 = ctx.__post({ c: r3.id, fn: 'apiAdminSalvarMarca', args: [lc, { logo:
 T('admin troca a marca depois (e limpa a logo)', mk2.ok && mk2.dados.cor === '#112233' && mk2.dados.logo === '' && mk2.dados.fonteTitulo === 'Lora');
 T('marca de um cliente não aparece em outro', ctx.__post({ c: r2.id, fn: 'apiMarca', args: [] }).dados.cor === '');
 T('sem login de admin não troca a marca', !ctx.__post({ c: r3.id, fn: 'apiAdminSalvarMarca', args: ['token-falso', { cor: '#000000' }] }).ok);
+
+// --- "manter conectado" com token assinado (nada guardado no servidor)
+const propsAntes = Object.keys(props).filter(k => k.indexOf('sess_') === 0).length;
+const lv = ctx.__post({ c: r2.id, fn: 'apiLogin', args: ['admin', 'outra-senha-2', true] });
+T('manter conectado gera token assinado v2', lv.ok && /^v2.[A-Za-z0-9_-]+.[A-Za-z0-9_-]+$/.test(lv.dados.token));
+T('manter conectado não grava nada nas Propriedades do script', Object.keys(props).filter(k => k.indexOf('sess_') === 0).length === propsAntes);
+Object.keys(cacheMap).forEach(k => delete cacheMap[k]);
+T('token assinado vale mesmo sem cache', ctx.__post({ c: r2.id, fn: 'apiEu', args: [lv.dados.token] }).ok);
+T('token assinado não vale em outro cliente', !ctx.__post({ c: r3.id, fn: 'apiEu', args: [lv.dados.token] }).ok);
+const adulterado = lv.dados.token.replace(/.([^.]+)./, (m, d) => '.' + d.slice(0, -2) + (d.slice(-2) === 'AA' ? 'BB' : 'AA') + '.');
+T('token adulterado é recusado', !ctx.__post({ c: r2.id, fn: 'apiEu', args: [adulterado] }).ok);
+const colB = livros['R'.repeat(30)].getSheetByName('Colaboradores'), iSalt = colB.d[0].indexOf('senha_salt');
+colB.d[1][iSalt] = 'novosal-trocado'; Object.keys(cacheMap).forEach(k => delete cacheMap[k]);
+T('trocar a senha (sal) derruba o token na hora', !ctx.__post({ c: r2.id, fn: 'apiEu', args: [lv.dados.token] }).ok);
 
 ok.forEach(([t, v]) => console.log((v ? 'OK    ' : 'FALHA ') + t));
 process.exit(ok.every(x => x[1]) ? 0 : 1);
