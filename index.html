@@ -3008,21 +3008,22 @@ function tirarSplash() { var s = el('splash'); if (s && !s.classList.contains('s
 setTimeout(tirarSplash, 4000);   // nunca prende a tela
 
 // ---------- Marca do cliente ----------
-function aplicarMarca(m) {
+function aplicarMarca(m, ico) {
   var nome = (m && m.empresa) || 'Ponto';
+  ico = ico || {};
   document.title = 'Ponto · ' + nome;
   [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img, #folha .topo img'), function (i) { i.src = 'icons/neutro-192.png'; i.alt = nome; });
   var lg = document.querySelector('.login-logo'); if (lg) { lg.style.width = '96px'; lg.style.borderRadius = '22px'; lg.style.margin = '0 auto 10px'; }
   var t = el('tit'); if (t) t.textContent = nome;
-  var ap = document.querySelector('link[rel="apple-touch-icon"]'); if (ap) ap.href = 'icons/neutro-180.png';
-  var ic = document.querySelector('link[rel="icon"]'); if (ic) ic.href = 'icons/neutro-192.png';
+  var ap = document.querySelector('link[rel="apple-touch-icon"]'); if (ap) ap.href = ico.a180 || 'icons/neutro-180.png';
+  var ic = document.querySelector('link[rel="icon"]'); if (ic) ic.href = ico.i192 || 'icons/neutro-192.png';
   var ti = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (ti) ti.content = nome.slice(0, 20);
   var base = location.href.split('?')[0].replace(/[^\/]*$/, '');
   try {
     var mf = { name: 'Ponto · ' + nome, short_name: nome.slice(0, 12), description: 'Registro de ponto com reconhecimento facial e localização', lang: 'pt-BR',
-      start_url: base + '?c=' + CLIENTE, scope: base, display: 'standalone', orientation: 'portrait', background_color: '#70122D', theme_color: '#70122D',
-      icons: [{ src: base + 'icons/neutro-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'icons/neutro-512.png', sizes: '512x512', type: 'image/png' },
-        { src: base + 'icons/neutro-512-mask.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }] };
+      start_url: base + '?c=' + CLIENTE, scope: base, display: 'standalone', orientation: 'portrait', background_color: (m && m.cor) || '#70122D', theme_color: (m && m.cor) || '#70122D',
+      icons: [{ src: ico.i192 || base + 'icons/neutro-192.png', sizes: '192x192', type: 'image/png' }, { src: ico.i512 || base + 'icons/neutro-512.png', sizes: '512x512', type: 'image/png' },
+        { src: ico.mask || base + 'icons/neutro-512-mask.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }] };
     var lk = document.querySelector('link[rel="manifest"]');
     if (lk) lk.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type: 'application/manifest+json' }));
   } catch (e) {}
@@ -3033,6 +3034,14 @@ function aplicarVisual(m) {
   MARCA = m || {};
   if (!window.MarcaUtil || !MarcaUtil.personalizada(m)) return;
   MarcaUtil.aplicar(m);
+  logoNaTela(m);
+  // ícone do app (tela inicial, aba do navegador) feito da logo: só para clientes do instalador
+  if (CLIENTE && m.logo && MarcaUtil.iconeDaLogo) {
+    Promise.all([MarcaUtil.iconeDaLogo(m.logo, 192, 0.1), MarcaUtil.iconeDaLogo(m.logo, 512, 0.1), MarcaUtil.iconeDaLogo(m.logo, 512, 0.2), MarcaUtil.iconeDaLogo(m.logo, 180, 0.1)])
+      .then(function (r) { if (MARCA !== m) return; aplicarMarca(m, { i192: r[0], i512: r[1], mask: r[2], a180: r[3] }); logoNaTela(m); }).catch(function () {});
+  }
+}
+function logoNaTela(m) {
   if (m.logo) [].forEach.call(document.querySelectorAll('header .marca img, .login-logo, #splash img, #folha .topo img'), function (i) { i.src = m.logo; });
   var lg = document.querySelector('.login-logo');
   if (lg && m.logo) { lg.style.width = 'auto'; lg.style.maxWidth = 'min(260px, 70vw)'; lg.style.maxHeight = '120px'; lg.style.background = '#fff'; lg.style.borderRadius = '18px'; lg.style.padding = '10px'; }
@@ -3079,7 +3088,7 @@ function mkPadrao() { MK = { logo: MK ? MK.logo : '', cor: '', cor2: '', fonte: 
 function mkSalvar() {
   carregando('Salvando...');
   api('apiAdminSalvarMarca', S.token, MK).then(function (m) {
-    carregando(); guardar('marca', JSON.stringify(m)); aplicarVisual(m); if (CLIENTE) aplicarMarca(m);
+    carregando(); guardar('marca', JSON.stringify(m)); if (CLIENTE) aplicarMarca(m); aplicarVisual(m);
     msg('aMsg', 'Marca salva. Os celulares da equipe pegam a nova marca ao abrir o app.', true); window.scrollTo(0, 0);
   }).catch(function (e) { carregando(); msg('aMsg', e.message); });
 }

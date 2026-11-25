@@ -95,9 +95,24 @@ var MarcaUtil = (function () {
     carregarFontes(f, ft);
     var t = document.querySelector('meta[name="theme-color"]'); if (t) t.content = cor;
   }
+  /** Ícone quadrado do app a partir da logo: fundo branco, logo centralizada com margem (margem 0,2 = área segura do ícone "maskable"). */
+  function iconeDaLogo(dataUrl, lado, margem) {
+    return new Promise(function (ok, falha) {
+      var img = new Image();
+      img.onerror = function () { falha(new Error('Não consegui ler a logo.')); };
+      img.onload = function () {
+        var c = document.createElement('canvas'); c.width = c.height = lado;
+        var x = c.getContext('2d'); x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, lado, lado);
+        var util = lado * (1 - 2 * margem), e = util / Math.max(img.width || 1, img.height || 1), w = (img.width || 1) * e, h = (img.height || 1) * e;
+        x.imageSmoothingQuality = 'high'; x.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
+        ok(c.toDataURL('image/png'));
+      };
+      img.src = dataUrl;
+    });
+  }
   function personalizada(m) { return !!(m && (m.logo || m.cor || m.cor2 || m.fonte || m.fonteTitulo)); }
 
   return { FONTES_TEXTO: FONTES_TEXTO, FONTES_TITULO: FONTES_TITULO, PADRAO: PADRAO, LOGO_MAX: LOGO_MAX,
-    lerLogo: lerLogo, sugerirCores: sugerirCores, aplicar: aplicar, contraste: contraste, misturar: misturar, personalizada: personalizada };
+    lerLogo: lerLogo, sugerirCores: sugerirCores, aplicar: aplicar, contraste: contraste, misturar: misturar, personalizada: personalizada, iconeDaLogo: iconeDaLogo };
 })();
 /* MARCA-UTIL-FIM */
