@@ -19,7 +19,9 @@
   .beneficios { list-style:none; margin:0 0 4px; padding:0; display:grid; gap:8px; }
   .beneficios li { display:flex; gap:10px; align-items:flex-start; font-size:14.5px; }
   .beneficios b { color:var(--vinho); }
-  .ic { flex:0 0 22px; height:22px; border-radius:50%; background:var(--claro); color:var(--vinho); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  .ic { flex:0 0 28px; height:28px; border-radius:50%; background:var(--claro); color:var(--vinho); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .grupo { margin:14px 0 8px; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); }
+  .grupo:first-child { margin-top:0; }
   h2 { margin:0 0 4px; font:600 20px Georgia, serif; color:var(--vinho); }
   .sub { color:var(--mut); font-size:13.5px; margin:0 0 12px; }
   label { display:block; font-size:13px; font-weight:600; margin:12px 0 4px; }
@@ -46,11 +48,28 @@
 </div>
 <main>
   <div class="card">
+    <p class="grupo">Ponto sem relógio</p>
     <ul class="beneficios">
-      <li><span class="ic">✓</span><span><b>Rosto + GPS:</b> só vale perto da loja e com a pessoa certa.</span></li>
-      <li><span class="ic">✓</span><span><b>Fechamento pronto:</b> horas, banco de horas e espelho do ponto sem planilha manual.</span></li>
-      <li><span class="ic">✓</span><span><b>Escala e férias:</b> gerador de escala (inclusive por turnos) que avisa quando falta gente.</span></li>
-      <li><span class="ic">✓</span><span><b>Sem mensalidade de banco de dados:</b> usa planilha e Drive da sua empresa.</span></li>
+      <li><span class="ic">📍</span><span><b>Rosto + GPS:</b> só vale perto da loja e com a pessoa certa. Bate pelo próprio celular, sem comprar relógio de ponto.</span></li>
+      <li><span class="ic">🙋</span><span><b>Abono pelo app:</b> o colaborador pede (atestado, consulta, esquecimento) e você aprova com um toque.</span></li>
+    </ul>
+    <p class="grupo">Fechamento sem planilha manual</p>
+    <ul class="beneficios">
+      <li><span class="ic">🏦</span><span><b>Banco de horas sempre à vista:</b> cada colaborador vê o seu saldo no app; você vê o de todos e recebe alerta de quem está ficando negativo.</span></li>
+      <li><span class="ic">✨</span><span><b>Sugestão de ajuste:</b> o app aponta batida faltando, atraso e hora a mais, e sugere o ajuste certo (abonar, somar ao banco, descontar).</span></li>
+      <li><span class="ic">📄</span><span><b>Espelho e fechamento prontos:</b> horas, saldo, salário e passagem do mês, em PDF ou na planilha.</span></li>
+    </ul>
+    <p class="grupo">Escala pronta para a lei nova</p>
+    <ul class="beneficios">
+      <li><span class="ic">📅</span><span><b>Fim da 6x1:</b> monta a escala 5x2 dentro de 42 h (dez/2026) e 40 h (dez/2027), a partir do movimento real da sua loja.</span></li>
+      <li><span class="ic">🔄</span><span><b>Turnos:</b> 2 ou 3 turnos com 11 h de descanso entre jornadas; se não fechar, avisa: <i>"precisa contratar +1 de caixa"</i>.</span></li>
+      <li><span class="ic">🏖</span><span><b>Férias:</b> calendário da equipe e sugestão de data seguindo a CLT, já descontadas na escala.</span></li>
+      <li><span class="ic">⚖️</span><span><b>Regras acompanhadas:</b> mudou a lei, o app é atualizado para todos os clientes.</span></li>
+    </ul>
+    <p class="grupo">Do seu jeito</p>
+    <ul class="beneficios">
+      <li><span class="ic">🎨</span><span><b>Sua marca:</b> logo, cores e fontes da empresa no app e no ícone do celular.</span></li>
+      <li><span class="ic">🔒</span><span><b>Sem mensalidade de banco de dados:</b> tudo fica na planilha e no Drive da <b>sua</b> conta Google.</span></li>
     </ul>
   </div>
 
