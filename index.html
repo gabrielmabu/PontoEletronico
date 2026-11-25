@@ -315,6 +315,11 @@
   .tg tr.virt td.nome { color:var(--err); font-style:italic; } .tg td.sem { border-left:3px solid #fff; }
   .tur-alerta { border:1px solid #E4B8B4; background:var(--err-bg); color:#7A1E18; border-radius:12px; padding:10px 14px; margin:8px 0; font-size:14px; }
   .tur-ok { border:1px solid #B9DCC5; background:var(--ok-bg); color:#1F5A38; border-radius:12px; padding:10px 14px; margin:8px 0; font-size:14px; }
+  .esc-nav { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px; }
+  .esc-nav a { padding:6px 12px; border-radius:999px; background:var(--vinho-claro); color:var(--vinho); font-size:13.5px; font-weight:600; text-decoration:none; }
+  .esc-sec { border-top:1px solid var(--bd, #ECE2E5); margin-top:22px; padding-top:14px; scroll-margin-top:90px; }
+  .esc-sec h3 { margin:0; font-family:var(--serif); font-size:22px; color:var(--vinho); }
+  @media print { .esc-nav, #escSecFerias, #escSecTurnos, #escExplica { display:none !important; } .esc-sec { border:0; margin:0; padding:0; } }
   .esc-pessoas { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:6px 14px; }
   .esc-pessoas div { display:flex; align-items:center; gap:8px; } .esc-pessoas label { margin:0; flex:1; text-transform:none; letter-spacing:0; font-size:14px; font-weight:500; color:var(--txt); display:flex; gap:6px; align-items:center; }
   .esc-pessoas select, #escDias select { width:auto; padding:5px 30px 5px 8px; font-size:13px; }
@@ -630,11 +635,15 @@
   </div>
 
   <div class="card at hide" id="at-escala">
-    <div class="topo-filtro"><h2>Escala 5x2 · fim da 6x1</h2>
-      <div class="filtro"><button class="btn sec peq" onclick="baixarEscalaCsv()">⤓ Planilha (CSV)</button><button class="btn sec peq" onclick="window.print()">⎙ Imprimir</button></div></div>
+    <h2>Escala · fim da 6x1</h2>
+    <nav class="esc-nav"><a href="#escSecFerias">🏖 Férias</a><a href="#escSec5x2">📅 Escala 5x2</a><a href="#escSecTurnos">🔄 Escala por turnos</a></nav>
     <div class="explica" id="escExplica"></div>
-    <div id="escDiag"><p class="mut">Analisando as batidas reais dos últimos meses...</p></div>
-    <details class="legenda" id="escFerias" open><summary>🏖 Férias (calendário e regras da CLT)</summary>
+
+    <section class="esc-sec" id="escSecFerias">
+      <div class="topo-filtro"><h3>🏖 Férias</h3>
+        <div class="filtro"><button class="btn sec peq" onclick="baixarFeriasCsv()">⤓ Férias (CSV)</button></div></div>
+      <p class="mut" style="margin:0 0 6px">Calendário da equipe e regras da CLT. As duas escalas abaixo já descontam quem está de férias.</p>
+    <div id="escFerias">
       <div class="linha" style="align-items:flex-end;flex-wrap:wrap">
         <div><label>Colaborador(a)</label><select id="ferPessoa"></select></div>
         <div><label>Início</label><input type="date" id="ferIni" onchange="ferPrevia()"></div>
@@ -646,10 +655,17 @@
       <div id="ferLista"></div>
       <div class="topo-filtro" style="margin-top:12px"><b>Calendário</b>
         <div class="filtro"><button class="btn sec peq" onclick="ferMes(-1)">‹</button><input type="month" id="ferMesSel" onchange="pintarCalendarioFerias()"><button class="btn sec peq" onclick="ferMes(1)">›</button>
-          <button class="btn sec peq" onclick="baixarFeriasCsv()">⤓ CSV</button></div></div>
+          </div></div>
       <div id="ferCal"></div>
-      <p class="mut">As férias ficam salvas <b>neste aparelho</b> (use o CSV para guardar/levar). A escala abaixo já considera quem está de férias.</p>
-    </details>
+      <p class="mut">As férias ficam salvas <b>neste aparelho</b>: use o botão <b>Férias (CSV)</b> para guardar uma cópia ou levar para outro computador.</p>
+    </div>
+    </section>
+
+    <section class="esc-sec" id="escSec5x2">
+      <div class="topo-filtro"><h3>📅 Escala 5x2</h3>
+        <div class="filtro"><button class="btn sec peq" onclick="baixarEscalaCsv()">⤓ Escala 5x2 (CSV)</button><button class="btn sec peq" onclick="window.print()">⎙ Imprimir escala 5x2</button></div></div>
+      <p class="mut" style="margin:0 0 6px">Para loja com um horário só (ex.: horário comercial). Toque em <b>✨ Sugerir folgas</b> e baixe quando não houver irregularidade.</p>
+    <div id="escDiag"><p class="mut">Analisando as batidas reais dos últimos meses...</p></div>
     <details class="legenda" id="escParams" open onchange="aoMudarParam(event)"><summary>Movimento, equipe e funções (preenchido a partir das batidas, pode ajustar)</summary>
       <div class="scroll"><table id="escDias"></table></div>
       <label>Equipe e função de cada pessoa</label><div id="escPessoas" class="esc-pessoas"></div>
@@ -658,8 +674,14 @@
         <div><label>Começar na semana de</label><input type="date" id="escInicio" value="2026-12-14"></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
-    <details class="legenda" id="escTurnos" open onchange="turMudou()"><summary>🔄 Escala por turnos (vários turnos, descanso mínimo entre jornadas, "precisa contratar")</summary>
-      <p class="mut" style="margin:8px 0">Para empresas com 2 ou 3 turnos (ex.: manhã, tarde e noite). O gerador respeita o <b>descanso mínimo entre jornadas</b> (CLT art. 66, 11 h), as folgas da semana, o limite de horas e os dias seguidos. Se a demanda não couber na equipe, ele <b>diz quantas pessoas de qual função precisa contratar</b>. Usa a equipe, as funções e as férias acima.</p>
+    <div id="escRes"></div>
+    </section>
+
+    <section class="esc-sec" id="escSecTurnos">
+      <div class="topo-filtro"><h3>🔄 Escala por turnos</h3>
+        <div class="filtro"><button class="btn sec peq" onclick="turCsv()">⤓ Escala por turnos (CSV)</button></div></div>
+    <div id="escTurnos" class="legenda" onchange="turMudou()">
+      <p class="mut" style="margin:0 0 8px">Para empresas com 2 ou 3 turnos (ex.: manhã, tarde e noite). O gerador respeita o <b>descanso mínimo entre jornadas</b> (CLT art. 66, 11 h), as folgas da semana, o limite de horas e os dias seguidos. Se a demanda não couber na equipe, ele <b>diz quantas pessoas de qual função precisa contratar</b>. Usa a equipe e as funções da Escala 5x2 e as férias, acima.</p>
       <label>Turnos</label>
       <div class="scroll"><table id="turTab"></table></div>
       <div class="linha"><div><label>Descanso mínimo entre jornadas (h)</label><input id="turDesc" inputmode="decimal"></div><div><label>Máximo de dias seguidos</label><input id="turSeg" inputmode="numeric"></div></div>
@@ -667,10 +689,10 @@
       <div class="scroll"><table id="turDem"></table></div>
       <label>Quem só pode fazer um turno (opcional)</label>
       <div id="turFix" class="esc-pessoas"></div>
-      <div class="linha" style="margin-top:10px"><button class="btn" onclick="turGerar()">Gerar escala por turnos</button><button class="btn sec" onclick="turCsv()">⤓ Planilha (CSV)</button></div>
+      <button class="btn" style="margin-top:10px" onclick="turGerar()">Gerar escala por turnos</button>
       <div id="turRes"></div>
-    </details>
-    <div id="escRes"></div>
+    </div>
+    </section>
     <p class="mut" style="margin-top:14px">Ferramenta de apoio ao planejamento. Confira convenção coletiva da categoria e oriente-se com o contador ou advogado trabalhista antes de aplicar.</p>
   </div>
 
@@ -2646,8 +2668,10 @@ function sugerirFolgas() {
         g.forEach(function (x, i) {
           if (!trabC(x)) return;
           var alvo = dias[i].min * (dias[i].dur > 360 ? 1.35 : 1);   // dias com almoço precisam de mais gente no dia para manter o mínimo
+          // dia com almoço: a função precisa de 1 pessoa a mais, senão fica sem ninguém enquanto um almoça
+          var minFd = minF + (minF > 0 && dias[i].dur > 360 ? 1 : 0);
           var n = (equipe[i] - alvo) * 10 + (i === pref ? 5 : 0) + (i === 5 && w % 2 === pi % 2 ? 3 : 0) +
-            (porFunc[fu][i] - 1 < minF ? -1000 : (porFunc[fu][i] - minF) * 4);   // não deixa a função sem cobertura
+            (porFunc[fu][i] - 1 < minF ? -1000 : porFunc[fu][i] - 1 < minFd ? -300 : (porFunc[fu][i] - minFd) * 4);   // não deixa a função sem cobertura
           if (n > nota) { nota = n; melhor = i; }
         });
         g[melhor] = 'F'; equipe[melhor]--; porFunc[fu][melhor]--;
