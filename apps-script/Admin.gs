@@ -67,7 +67,7 @@ function apiAdminResetRosto(token, id) {
   var adm = sessao_(token, true);
   var c = colaboradorPorId_(id);
   if (!c) throw new Error('Colaborador não encontrado.');
-  atualizarLinha_('Colaboradores', c._linha, { descritores_faciais: '' });
+  atualizarLinha_('Colaboradores', c._linha, c.foto_perfil !== undefined ? { descritores_faciais: '', foto_perfil: '' } : { descritores_faciais: '' });
   log_(adm.login, 'RESET_ROSTO', c.login);
   return c.nome + ' vai cadastrar o rosto de novo no próximo acesso.';
 }

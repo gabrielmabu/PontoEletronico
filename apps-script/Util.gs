@@ -8,7 +8,7 @@ var CAB = {
   Colaboradores: ['id', 'nome', 'login', 'cargo', 'perfil', 'id_loja', 'id_jornada',
     'salario_padrao', 'passagem_dia', 'abono_qtd', 'desconto_pct',
     'senha_hash', 'senha_salt', 'primeiro_acesso', 'descritores_faciais',
-    'consentimento_lgpd_em', 'ativo', 'criado_em'],
+    'consentimento_lgpd_em', 'ativo', 'criado_em', 'foto_perfil'],
   Jornadas: ['id_jornada', 'nome', 'horas_seg_sex', 'horas_sabado', 'horas_domingo', 'observacao'],
   Batidas: ['id', 'id_colaborador', 'nome', 'tipo', 'data_hora_servidor',
     'latitude', 'longitude', 'precisao_m', 'distancia_loja_m', 'id_loja',
@@ -38,6 +38,12 @@ function ss_() {
   }
   return SpreadsheetApp.getActiveSpreadsheet() ||
     SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'));
+}
+
+/** Cria a coluna no fim do cabeçalho se a planilha ainda não tiver (planilhas antigas). */
+function garantirColuna_(nome, col) {
+  var a = aba_(nome), n = a.getLastColumn(), cab = n ? a.getRange(1, 1, 1, n).getValues()[0] : [];
+  if (cab.indexOf(col) < 0) { a.getRange(1, n + 1).setValue(col).setFontWeight('bold'); delete _memo[nome]; }
 }
 
 function aba_(nome) {

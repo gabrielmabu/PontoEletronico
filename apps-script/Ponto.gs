@@ -77,13 +77,26 @@ function validarDescritor_(d) {
   return d.map(function (x) { return Math.round(Number(x) * 1e6) / 1e6; });
 }
 
-function apiCadastrarRosto(token, descritores) {
+/** Miniatura do rosto (JPEG pequeno, ~96 px) para a grade do totem. Vazio se inválida. */
+function miniaturaValida_(s) {
+  s = String(s || '');
+  return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(s) && s.length < 16000 ? s : '';
+}
+function gravarMiniatura_(c, s) {
+  s = miniaturaValida_(s);
+  if (!s) return;
+  try { garantirColuna_('Colaboradores', 'foto_perfil'); atualizarLinha_('Colaboradores', c._linha, { foto_perfil: s }); }
+  catch (e) { console.error('miniatura', e); }
+}
+
+function apiCadastrarRosto(token, descritores, miniatura) {
   var c = sessao_(token);
   if (c.primeiro_acesso === 'SIM') throw new Error('Troque a senha primeiro.');
   if (!c.consentimento_lgpd_em) throw new Error('É preciso aceitar o termo de uso da biometria.');
   if (!Array.isArray(descritores) || descritores.length < 3) throw new Error('São necessárias 3 fotos.');
   var lista = descritores.map(validarDescritor_);
   atualizarLinha_('Colaboradores', c._linha, { descritores_faciais: JSON.stringify(lista) });
+  gravarMiniatura_(c, miniatura);
   log_(c.login, 'CADASTRO_FACIAL', lista.length + ' descritores');
   return perfilPublico_(colaboradorPorId_(c.id));
 }
@@ -199,6 +212,7 @@ function baterPonto_(c, dados, origem) {
       if (motivo.indexOf('Fora do raio') === 0) msg = motivo + (totem ? '. O tablet do totem parece estar fora da loja.' : '. O ponto só pode ser batido na loja.');
       throw new Error(msg);
     }
+    gravarMiniatura_(c, dados.miniatura);   // a foto da grade do totem fica sempre a da última batida aceita
     return {
       nome: c.nome, tipo: NOME_TIPO[tipo], dataHora: dataHoraStr_(agora),
       loja: loja ? loja.nome : '', distancia: reg.distancia_loja_m

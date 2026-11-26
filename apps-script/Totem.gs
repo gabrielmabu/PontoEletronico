@@ -54,7 +54,7 @@ function apiTotemDesligarTodos(token) {
 function apiTotemLista(chave) {
   totem_(chave);
   var l = lerObjetos_('Colaboradores').filter(function (c) { return c.ativo === 'SIM' && c.login !== 'admin'; })
-    .map(function (c) { var av = prontoParaTotem_(c); return { id: String(c.id), nome: String(c.nome), aviso: av }; });
+    .map(function (c) { var av = prontoParaTotem_(c); return { id: String(c.id), nome: String(c.nome), aviso: av, foto: av ? '' : miniaturaValida_(c.foto_perfil) }; });
   l.sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
   return { equipe: l, empresa: String(cfg_('nome_empresa', '')), precisaoMin: Number(cfg_('precisao_gps_m', 100)) };
 }
