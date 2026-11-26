@@ -93,13 +93,16 @@ function apiVisita(origem, tipo) {
     if (ult >= 2) {
       var v = a.getRange(ini, 1, ult - ini + 1, 2).getValues();
       for (var i = v.length - 1; i >= 0; i--) {
-        if (String(v[i][0]) === dia && String(v[i][1]) === origem) {
+        var d0 = v[i][0] instanceof Date ? Utilities.formatDate(v[i][0], 'America/Recife', 'yyyy-MM-dd') : String(v[i][0]).trim();
+        if (d0 === dia && String(v[i][1]).trim() === origem) {
           var c = a.getRange(ini + i, col); c.setValue((Number(c.getValue()) || 0) + 1);
+          SpreadsheetApp.flush();
           return { ok: true };
         }
       }
     }
-    a.appendRow([dia, origem, col === 3 ? 1 : 0, col === 4 ? 1 : 0]);
+    a.getRange(ult + 1, 1, 1, 4).setNumberFormats([['@', '@', '0', '0']]).setValues([[dia, origem, col === 3 ? 1 : 0, col === 4 ? 1 : 0]]);
+    SpreadsheetApp.flush();   // grava antes de soltar a trava, senão a próxima chamada não vê a linha
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
