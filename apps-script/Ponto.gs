@@ -127,6 +127,16 @@ function salvarSelfie_(c, dataUrl, agora) {
 function apiBaterPonto(token, dados) {
   var c = sessao_(token);
   if (c.primeiro_acesso === 'SIM') throw new Error('Troque a senha padrão antes de bater o ponto.');
+  return baterPonto_(c, dados || {}, 'APP');
+}
+
+/**
+ * Registra a batida de c. origem 'APP' (celular da pessoa) ou 'TOTEM' (tablet da loja).
+ * No totem o aparelho é fixo e foi liberado pelo admin: sem GPS ou com GPS impreciso a batida vale;
+ * só recusa se o GPS for preciso e mostrar que o tablet está fora da loja.
+ */
+function baterPonto_(c, dados, origem) {
+  var totem = origem === 'TOTEM';
   var cadastrados = [];
   try { cadastrados = JSON.parse(c.descritores_faciais || '[]'); } catch (e) {}
   if (!cadastrados.length) throw new Error('Faça o cadastro do rosto antes de bater o ponto.');
@@ -141,7 +151,7 @@ function apiBaterPonto(token, dados) {
     // Duplicidade: menos de N minutos desde a última batida OK
     var minIntervalo = Number(cfg_('intervalo_min_batidas_min', 2));
     if (bat.length && (agora - bat[bat.length - 1].data) < minIntervalo * 60000) {
-      throw new Error('Você já bateu o ponto há menos de ' + minIntervalo + ' minutos.');
+      throw new Error((totem ? c.nome.split(' ')[0] + ' já bateu' : 'Você já bateu') + ' o ponto há menos de ' + minIntervalo + ' minutos.');
     }
 
     var prox = proximosTipos_(bat);
@@ -154,13 +164,13 @@ function apiBaterPonto(token, dados) {
       id: Utilities.getUuid(), id_colaborador: c.id, nome: c.nome, tipo: tipo,
       data_hora_servidor: agora, latitude: isNaN(lat) ? '' : lat, longitude: isNaN(lng) ? '' : lng,
       precisao_m: isNaN(prec) ? '' : Math.round(prec), id_loja: loja ? loja.id_loja : '',
-      dispositivo: String(dados.dispositivo || '').slice(0, 250), origem: 'APP'
+      dispositivo: String(dados.dispositivo || '').slice(0, 250), origem: totem ? 'TOTEM' : 'APP'
     };
 
     var motivo = '';
     // GPS (validado no servidor)
-    if (isNaN(lat) || isNaN(lng)) motivo = 'Sem localização';
-    else if (prec > Number(cfg_('precisao_gps_m', 100))) motivo = 'GPS impreciso (' + Math.round(prec) + ' m)';
+    if (isNaN(lat) || isNaN(lng)) { if (!totem) motivo = 'Sem localização'; }
+    else if (prec > Number(cfg_('precisao_gps_m', 100))) { if (!totem) motivo = 'GPS impreciso (' + Math.round(prec) + ' m)'; }
     else if (loja) {
       var dist = haversine_(lat, lng, Number(loja.latitude), Number(loja.longitude));
       reg.distancia_loja_m = Math.round(dist);
@@ -181,11 +191,12 @@ function apiBaterPonto(token, dados) {
     anexar_('Batidas', reg);
 
     if (motivo) {
-      log_(c.login, 'BATIDA_RECUSADA', motivo);
+      log_(c.login, 'BATIDA_RECUSADA', motivo + (totem ? ' (totem)' : ''));
       var msg = motivo;
-      if (motivo === 'Rosto não reconhecido') msg = 'Rosto não reconhecido. Tente de novo com mais luz, olhando para a câmera.';
+      if (motivo === 'Rosto não reconhecido') msg = totem ? 'Rosto não reconhecido para ' + c.nome.split(' ')[0] + '. Confira se tocou no seu nome e tente de novo, olhando para a câmera.'
+        : 'Rosto não reconhecido. Tente de novo com mais luz, olhando para a câmera.';
       if (motivo.indexOf('GPS impreciso') === 0) msg = motivo + '. Vá para um local aberto e tente de novo.';
-      if (motivo.indexOf('Fora do raio') === 0) msg = motivo + '. O ponto só pode ser batido na loja.';
+      if (motivo.indexOf('Fora do raio') === 0) msg = motivo + (totem ? '. O tablet do totem parece estar fora da loja.' : '. O ponto só pode ser batido na loja.');
       throw new Error(msg);
     }
     return {

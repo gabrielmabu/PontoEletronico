@@ -341,6 +341,27 @@
   table.esc .fcob { display:block; font-size:10.5px; font-weight:500; }
   #escDias input { width:78px; padding:6px 8px; font-size:14px; } #escDias input[type=checkbox] { width:18px; }
   .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  /* Modo totem */
+  body.tela-totem header nav { display:none; }
+  body.tela-totem main { max-width:1100px; }
+  .tt-lista { padding-left:20px; line-height:1.5; } .tt-lista li { margin-bottom:6px; }
+  .tt-topo { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:8px 0 4px; }
+  .tt-rel { font-size:46px; font-weight:700; color:var(--vinho); font-variant-numeric:tabular-nums; line-height:1; }
+  .tt-tit { text-align:center; margin:16px 0 14px; }
+  .tt-grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px; }
+  .tt-b { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:132px; padding:16px 10px; border-radius:16px;
+    border:1px solid var(--bd); background:#fff; font:inherit; font-size:17px; font-weight:600; color:inherit; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); -webkit-tap-highlight-color:transparent; }
+  .tt-b:active { transform:scale(.97); background:var(--vinho-claro); }
+  .tt-b .ini { width:58px; height:58px; border-radius:50%; background:var(--vinho); color:#fff; display:flex; align-items:center; justify-content:center; font-size:21px; letter-spacing:.5px; }
+  .tt-b .nm { text-align:center; line-height:1.2; }
+  .tt-b.off { opacity:.5; } .tt-b.off .ini { background:var(--mut); }
+  .tt-b .av { font-size:12px; font-weight:500; color:var(--mut); }
+  .tt-sair { display:block; margin:34px auto 12px; background:none; border:0; color:var(--mut); text-decoration:underline; font:inherit; font-size:14px; cursor:pointer; }
+  .tt-over { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:18; padding:16px; }
+  .tt-cx { background:#fff; border-radius:18px; padding:26px 22px; max-width:460px; width:100%; text-align:center; }
+  .tt-cx h3 { margin:0 0 8px; } .tt-cx .btn { margin-top:10px; }
+  .tt-cx .grande { font-size:19px; padding:16px; }
+  .tt-cx .erro { color:#B42318; font-size:17px; margin:6px 0 4px; }
   @media print { body.tela-admin main { margin:0 !important; max-width:none !important; } header, #aTabs, #cfgTabs, #escParams, .filtro, .instalar { display:none !important; } .card { box-shadow:none; border:0; } }
 </style>
 </head>
@@ -459,6 +480,20 @@
   </div>
 </section>
 
+<!-- TOTEM (tablet fixo na loja) -->
+<section id="totem" class="hide">
+  <div class="tt-topo">
+    <div><div id="ttRelogio" class="tt-rel">--:--</div><div id="ttData" class="mut"></div></div>
+    <button class="btn sec peq" style="width:auto;margin:0" onclick="totemTelaCheia()">⛶ Tela cheia</button>
+  </div>
+  <h2 class="tt-tit">Toque no seu nome para bater o ponto</h2>
+  <div id="ttMsg" class="msg"></div>
+  <div id="ttGrade" class="tt-grade"><p class="mut">Carregando a equipe...</p></div>
+  <p id="ttAviso" class="mut" style="text-align:center;font-size:13px"></p>
+  <button class="tt-sair" onclick="totemPedirSair()">Sair do modo totem</button>
+</section>
+<div id="ttOver" class="tt-over hide" onclick="if (event.target === this) totemFecharOver()"><div class="tt-cx" id="ttCx"></div></div>
+
 <!-- ADMIN -->
 <section id="admin" class="hide">
   <div class="tabs" id="aTabs">
@@ -471,6 +506,7 @@
     <button data-t="ajuste" title="Ajustar ponto"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span><span class="tx">Ajustar ponto</span></button>
     <button data-t="recusadas" title="Recusadas"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg></span><span class="tx">Recusadas</span></button>
     <button data-t="escala" title="Escala 5x2"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg></span><span class="tx">Escala 5x2 <span class="badge">novo</span></span></button>
+    <button data-t="totem" title="Modo totem"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="9" r="2.6"/><path d="M8.5 15.5c.8-1.4 2-2.1 3.5-2.1s2.7.7 3.5 2.1M10 19h4"/></svg></span><span class="tx">Modo totem <span class="badge">novo</span></span></button>
     <button data-t="config" title="Configurações"><span class="ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></span><span class="tx">Configurações</span></button>
   </div>
   <div class="tabs hide" id="cfgTabs">
@@ -480,6 +516,20 @@
     <button data-s="marca">Marca</button>
   </div>
   <div id="aMsg" class="msg"></div>
+
+  <div class="card at hide" id="at-totem">
+    <h2>Modo totem</h2>
+    <p>Deixe um tablet fixo na loja para a equipe bater o ponto <b>sem usar o próprio celular</b>. A tela mostra os nomes: a pessoa toca no dela, olha para a câmera e pronto. A conferência do rosto é a mesma do celular.</p>
+    <ul class="tt-lista">
+      <li>Cada pessoa precisa ter <b>cadastrado o rosto</b> antes, no próprio celular. Quem ainda não cadastrou aparece apagado na grade.</li>
+      <li>Ao ativar, este aparelho <b>sai do admin</b> e passa a servir só para bater ponto. Para sair do totem, é preciso a senha do admin.</li>
+      <li>A <b>tela fica sempre acesa</b> enquanto o totem estiver aberto: deixe o tablet na tomada.</li>
+      <li>As batidas ficam marcadas como <b>totem</b> no registro. O celular continua funcionando igual.</li>
+    </ul>
+    <button class="btn" onclick="totemAtivar()">Ativar o modo totem neste aparelho</button>
+    <button class="btn sec" onclick="totemDesligarTodos()">Desligar todos os totens</button>
+    <p class="mut" style="font-size:13px">"Desligar todos" serve para quando o tablet sumiu ou foi trocado. Trocar a senha do admin também desliga os totens.</p>
+  </div>
 
   <div class="card at" id="at-aovivo">
     <div class="topo-filtro">
@@ -796,8 +846,10 @@ function api(fn) {
 function ir(tela) {
   document.body.classList.toggle('tela-login', tela === 'login');
   document.body.classList.toggle('tela-admin', tela === 'admin');
+  document.body.classList.toggle('tela-totem', tela === 'totem');
   if (tela === 'login') carregarListaLogin();
-  ['login', 'trocar', 'lgpd', 'rosto', 'ponto', 'historico', 'abono', 'admin'].forEach(function (t) { el(t).classList.toggle('hide', t !== tela); });
+  if (tela === 'totem') totemIniciar(); else totemParar();
+  ['login', 'trocar', 'lgpd', 'rosto', 'ponto', 'historico', 'abono', 'admin', 'totem'].forEach(function (t) { el(t).classList.toggle('hide', t !== tela); });
   var logado = !!S.token;
   el('bSair').classList.toggle('hide', !logado);
   el('bHist').classList.toggle('hide', !(logado && tela === 'ponto'));
@@ -2907,7 +2959,7 @@ function navEmbutido() { return /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|Link
 function mostrarInstalar(sim) { document.querySelectorAll('.instalar, #bInstalar').forEach(function (b) { b.classList.toggle('hide', !sim); }); }
 
 function abrirFolha() {
-  if (rodandoComoApp()) return;
+  if (rodandoComoApp() || ler('totem')) return;   // no totem, nada por cima da grade
   var corpo = '', btn = 'Instalar agora', acao = true;
   if (navEmbutido()) {
     if (ehAndroid()) {
@@ -3172,8 +3224,190 @@ function pintarTour() {
 }
 function fecharTour() { guardar('tourAdmin', '1'); var d = el('tour'); if (d) d.remove(); }
 
+// ---------- Modo totem (tablet fixo na loja) ----------
+var TT = { chave: null, equipe: [], relogio: null, recarga: null, wake: null, voltar: null };
+
+/** Chama o servidor com a chave do totem; se o totem foi desligado, volta para o login. */
+function ttApi() {
+  return api.apply(null, arguments).catch(function (e) {
+    if (String(e.message).indexOf('TOTEM_DESLIGADO') >= 0) {
+      guardar('totem', null); TT.chave = null; totemFecharOver(); carregando(); ir('login');
+      msg('lMsg', 'O modo totem foi desligado neste aparelho. Entre como admin para ativar de novo.');
+      throw { cancelado: true };
+    }
+    throw e;
+  });
+}
+
+function totemAtivar() {
+  if (!confirm('Este aparelho vai virar o totem da loja e sair do admin. Para sair do totem depois, é preciso a senha do admin. Continuar?')) return;
+  carregando('Ativando o totem...');
+  api('apiTotemAtivar', S.token).then(function (r) {
+    carregando();
+    var tk = S.token;
+    guardar('totem', r.chave); TT.chave = r.chave;
+    S.token = null; S.usuario = null; guardar('tk', null);
+    api('apiSair', tk).catch(function () {});
+    totemTelaCheia();
+    ir('totem');
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); });
+}
+
+function totemDesligarTodos() {
+  if (!confirm('Desligar TODOS os totens? Cada tablet volta para o login e precisa ser ativado de novo.')) return;
+  carregando('Desligando...');
+  api('apiTotemDesligarTodos', S.token).then(function () {
+    carregando(); msg('aMsg', 'Pronto: todos os totens foram desligados. Para usar de novo, ative em cada tablet.', true);
+  }).catch(function (e) { carregando(); msg('aMsg', e.message); });
+}
+
+function totemTelaCheia() {
+  var d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (f && !document.fullscreenElement) try { var p = f.call(d); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+}
+
+/** Mantém a tela acesa (Screen Wake Lock). O navegador solta a trava quando a aba some; ela é pedida de novo ao voltar. */
+function totemManterAcesa() {
+  if (TT.wake || el('totem').classList.contains('hide')) return;
+  if (!('wakeLock' in navigator)) {
+    el('ttAviso').textContent = 'Este navegador não mantém a tela acesa sozinho: nas configurações do tablet, deixe o bloqueio de tela em "Nunca".';
+    return;
+  }
+  navigator.wakeLock.request('screen').then(function (w) {
+    TT.wake = w; el('ttAviso').textContent = '';
+    w.addEventListener('release', function () { TT.wake = null; });
+  }).catch(function () { el('ttAviso').textContent = 'Toque na tela para ela ficar sempre acesa.'; });
+}
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && TT.chave) totemManterAcesa(); });
+el('totem').addEventListener('click', function () { totemManterAcesa(); });
+
+function totemIniciar() {
+  TT.chave = ler('totem');
+  el('tit').textContent = 'Ponto';
+  carregarFace().catch(function () {});        // modelos do rosto já vão chegando
+  var tic = function () {
+    var d = new Date();
+    el('ttRelogio').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    el('ttData').textContent = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+  tic();
+  if (!TT.relogio) TT.relogio = setInterval(tic, 1000);
+  if (!TT.recarga) TT.recarga = setInterval(function () { if (el('ttOver').classList.contains('hide') && !CAM) totemCarregar(); }, 10 * 60000);
+  try { var c = JSON.parse(ler('totemEquipe') || 'null'); if (c) totemGrade(c); } catch (e) {}
+  totemCarregar();
+  totemManterAcesa();
+}
+function totemParar() {
+  clearInterval(TT.relogio); clearInterval(TT.recarga); TT.relogio = TT.recarga = null;
+  if (TT.wake) { try { TT.wake.release(); } catch (e) {} TT.wake = null; }
+}
+
+function totemCarregar() {
+  if (!TT.chave) return;
+  ttApi('apiTotemLista', TT.chave).then(function (r) {
+    msg('ttMsg');
+    if (r.empresa) el('tit').textContent = r.empresa;
+    guardar('totemEquipe', JSON.stringify(r.equipe)); totemGrade(r.equipe);
+  }).catch(function (e) { if (!e.cancelado) msg('ttMsg', e.message); });
+}
+
+function iniciais(n) { var p = String(n).trim().split(/\s+/); return ((p[0] || '').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase(); }
+function totemGrade(eq) {
+  TT.equipe = eq || [];
+  el('ttGrade').innerHTML = TT.equipe.length ? TT.equipe.map(function (p, i) {
+    return '<button class="tt-b' + (p.aviso ? ' off' : '') + '" onclick="totemTocar(' + i + ')"><span class="ini">' + esc(iniciais(p.nome)) + '</span>' +
+      '<span class="nm">' + esc(p.nome) + '</span>' + (p.aviso ? '<span class="av">falta cadastrar o rosto</span>' : '') + '</button>';
+  }).join('') : '<p class="mut">Nenhuma pessoa ativa na equipe. Cadastre no admin › Colaboradores.</p>';
+}
+
+function totemOver(html, segundos) {
+  clearTimeout(TT.voltar);
+  el('ttCx').innerHTML = html; el('ttOver').classList.remove('hide');
+  if (segundos) TT.voltar = setTimeout(totemFecharOver, segundos * 1000);
+}
+function totemFecharOver() { clearTimeout(TT.voltar); el('ttOver').classList.add('hide'); el('ttCx').innerHTML = ''; }
+function totemErro(t) {
+  totemOver('<div style="font-size:42px">⚠️</div><p class="erro">' + esc(t) + '</p><button class="btn" onclick="totemFecharOver()">Voltar</button>', 8);
+}
+
+function totemTocar(i) {
+  var p = TT.equipe[i]; if (!p) return;
+  msg('ttMsg');
+  if (p.aviso) return totemErro(p.nome.split(' ')[0] + ': ' + p.aviso);
+  carregando('Um instante...');
+  ttApi('apiTotemEstado', TT.chave, p.id).then(function (st) {
+    carregando();
+    var nome = st.nome.split(' ')[0];
+    if (!st.proximos.length) return totemOver('<div style="font-size:42px">🌙</div><h3>' + esc(nome) + ', todas as batidas de hoje já foram feitas.</h3><p class="mut">Bom descanso!</p>' +
+      '<button class="btn" onclick="totemFecharOver()">Voltar</button>', 6);
+    if (st.proximos.length === 1) return totemCapturar(p, st.proximos[0]);
+    TT.opcoes = st.proximos;
+    totemOver('<h3>Oi, ' + esc(nome) + '! O que você vai registrar?</h3>' + st.proximos.map(function (o, k) {
+      return '<button class="btn grande' + (o.tipo === st.sugerido ? '' : ' sec') + '" onclick="totemFecharOver();totemCapturar(TT.equipe[' + i + '],TT.opcoes[' + k + '])">' + esc(o.nome) + '</button>';
+    }).join('') + '<button class="btn sec" onclick="totemFecharOver()">Cancelar</button>', 30);
+  }).catch(function (e) { carregando(); if (!e.cancelado) totemErro(e.message); });
+}
+
+/** GPS no totem é opcional: sem sinal (comum em tablet sem chip), a batida segue sem localização. */
+function gpsTotem() {
+  return new Promise(function (ok) {
+    if (!navigator.geolocation) return ok(null);
+    var feito = false, fim = function (v) { if (!feito) { feito = true; ok(v); } };
+    setTimeout(function () { fim(null); }, 9000);
+    navigator.geolocation.getCurrentPosition(function (q) { fim({ lat: q.coords.latitude, lng: q.coords.longitude, precisao: q.coords.accuracy }); },
+      function () { fim(null); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
+  });
+}
+
+function totemCapturar(p, op) {
+  var gps = gpsTotem(), foto;
+  obterRosto(p.nome.split(' ')[0] + ' · ' + op.nome, { pose: 'frente', vida: provaVidaAtiva(), amostras: 2 }).then(function (rosto) {
+    foto = rosto.canvas;
+    carregando('Registrando...');
+    return Promise.all([rosto.descritor, gps]);
+  }).then(function (r) {
+    var pos = r[1] || {};
+    return ttApi('apiTotemBater', TT.chave, p.id, {
+      tipo: op.tipo, lat: pos.lat, lng: pos.lng, precisao: pos.precisao, descritor: r[0],
+      foto: foto.toDataURL('image/jpeg', 0.7), dispositivo: 'TOTEM · ' + navigator.userAgent
+    });
+  }).then(function (cp) {
+    carregando();
+    var dh = String(cp.dataHora || '').split(' '), hora = (dh[1] || dh[0] || '').slice(0, 5);
+    vibrar([30, 60, 30]);
+    totemOver('<div class="comprovante" style="box-shadow:none;margin:0">' +
+      '<svg class="ck" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28"/><path d="M17 29l7 7 15-15"/></svg>' +
+      '<b>Ponto registrado</b><div class="hora">' + esc(hora) + '</div>' +
+      '<div class="lin">' + esc(cp.tipo) + ' · ' + esc(cp.nome) + '</div>' +
+      '<div class="lin">' + esc(dh[0] || '') + (cp.loja ? ' · ' + esc(cp.loja) : '') + '</div></div>' +
+      '<button class="btn" onclick="totemFecharOver()">OK</button>', 5);
+  }).catch(function (e) { carregando(); if (!e.cancelado) totemErro(e.message); });
+}
+
+function totemPedirSair() {
+  totemOver('<h3>Sair do modo totem</h3><p class="mut">Digite a senha do admin.</p>' +
+    '<input type="password" id="ttSenha" autocomplete="current-password" placeholder="Senha do admin">' +
+    '<div id="ttSairMsg" class="msg"></div>' +
+    '<button class="btn" onclick="totemSair()">Sair do totem</button><button class="btn sec" onclick="totemFecharOver()">Cancelar</button>', 60);
+  setTimeout(function () { var s = el('ttSenha'); if (s) { s.focus(); s.onkeydown = function (e) { if (e.key === 'Enter') totemSair(); }; } }, 50);
+}
+function totemSair() {
+  var s = el('ttSenha'); if (!s) return;
+  msg('ttSairMsg'); carregando('Conferindo...');
+  api('apiLogin', 'admin', s.value, false).then(function (r) {
+    carregando();
+    if (!r.usuario || r.usuario.perfil !== 'ADMIN') throw new Error('Só o admin pode sair do modo totem.');
+    guardar('totem', null); guardar('totemEquipe', null); TT.chave = null;
+    S.token = r.token; S.usuario = r.usuario; guardar('tk', r.token);
+    totemFecharOver();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+    rotear();
+  }).catch(function (e) { carregando(); clearTimeout(TT.voltar); TT.voltar = setTimeout(totemFecharOver, 60000); msg('ttSairMsg', e.message); });
+}
+
 // ---------- Início ----------
 (function () {
+  if (ler('totem')) { tirarSplash(); return ir('totem'); }   // tablet da loja: abre direto na grade de nomes
   var tk = ler('tk');
   if (!tk) { tirarSplash(); return ir('login'); }
   S.token = tk;
