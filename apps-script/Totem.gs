@@ -68,6 +68,46 @@ function colabDoTotem_(chave, id) {
   return c;
 }
 
+/**
+ * Foto da bolinha para quem ainda não tem: o totem pede a última selfie aceita da pessoa, reduz no próprio aparelho
+ * e devolve a miniatura (apiTotemSalvarFoto). Só funciona enquanto a pessoa está SEM foto, para não expor selfies à toa.
+ */
+function ultimaSelfie_(idColab) {
+  var a = aba_('Batidas'), n = a.getLastRow();
+  if (n < 2) return null;
+  var cab = a.getRange(1, 1, 1, a.getLastColumn()).getValues()[0];
+  var iC = cab.indexOf('id_colaborador'), iL = cab.indexOf('link_selfie'), iS = cab.indexOf('status'), iF = cab.indexOf('distancia_facial');
+  if (iC < 0 || iL < 0) return null;
+  // Entre as 15 selfies aceitas mais recentes, a MELHOR é a mais parecida com o cadastro do rosto (menor distância facial).
+  var ini = Math.max(2, n - 6000), d = a.getRange(ini, 1, n - ini + 1, cab.length).getValues(), melhor = null, vistos = 0;
+  for (var i = d.length - 1; i >= 0 && vistos < 15; i--) {
+    if (String(d[i][iC]) !== String(idColab) || !statusOk_(d[i][iS])) continue;
+    var m = String(d[i][iL] || '').match(/\/d\/([\w-]{20,})|[?&]id=([\w-]{20,})/);
+    if (!m) continue;
+    vistos++;
+    var dist = iF >= 0 && d[i][iF] !== '' ? Number(d[i][iF]) : 9;
+    if (!melhor || dist < melhor.dist) melhor = { id: m[1] || m[2], dist: dist };
+  }
+  return melhor ? melhor.id : null;
+}
+function apiTotemSelfie(chave, id) {
+  var c = colabDoTotem_(chave, id);
+  if (miniaturaValida_(c.foto_perfil)) return null;
+  var fid = ultimaSelfie_(c.id);
+  if (!fid) return null;
+  try {
+    var b = DriveApp.getFileById(fid).getBlob();
+    if (b.getBytes().length > 600000) return null;
+    return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes());
+  } catch (e) { return null; }
+}
+function apiTotemSalvarFoto(chave, id, mini) {
+  var c = colabDoTotem_(chave, id);
+  if (miniaturaValida_(c.foto_perfil)) return false;   // já tem: quem atualiza é a próxima batida
+  gravarMiniatura_(c, mini);
+  return true;
+}
+
 /** Totem: o que a pessoa ainda pode bater hoje. */
 function apiTotemEstado(chave, id) {
   var c = colabDoTotem_(chave, id);

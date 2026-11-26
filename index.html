@@ -3322,7 +3322,40 @@ function totemCarregar() {
     msg('ttMsg');
     if (r.empresa) el('tit').textContent = r.empresa;
     guardar('totemEquipe', JSON.stringify(r.equipe)); totemGrade(r.equipe);
+    totemBuscarFotos();
   }).catch(function (e) { if (!e.cancelado) msg('ttMsg', e.message); });
+}
+
+/** Quem ainda está sem foto: pega a última selfie aceita, reduz aqui e salva como foto da bolinha (uma pessoa por vez). */
+var ttBuscando = false;
+function totemBuscarFotos() {
+  if (ttBuscando) return;
+  var falta = TT.equipe.filter(function (p) { return !p.aviso && !p.foto && !p.semSelfie; });
+  if (!falta.length) return;
+  ttBuscando = true;
+  falta.reduce(function (pr, p) {
+    return pr.then(function () {
+      if (!TT.chave) return;
+      return ttApi('apiTotemSelfie', TT.chave, p.id).then(function (url) {
+        if (!url) { p.semSelfie = true; return; }
+        return new Promise(function (ok) {
+          var img = new Image();
+          img.onload = function () {
+            var c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+            c.getContext('2d').drawImage(img, 0, 0);
+            var mini = miniatura(c);
+            if (!mini) return ok();
+            ttApi('apiTotemSalvarFoto', TT.chave, p.id, mini).then(function () {
+              p.foto = mini; guardar('totemEquipe', JSON.stringify(TT.equipe));
+              if (el('ttOver').classList.contains('hide')) totemGrade(TT.equipe);
+            }).catch(function () {}).then(ok);
+          };
+          img.onerror = function () { ok(); };
+          img.src = url;
+        });
+      }).catch(function () {});
+    });
+  }, Promise.resolve()).then(function () { ttBuscando = false; });
 }
 
 function iniciais(n) { var p = String(n).trim().split(/\s+/); return ((p[0] || '').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase(); }
