@@ -164,7 +164,8 @@ function baterPonto_(c, dados, origem) {
     // Duplicidade: menos de N minutos desde a última batida OK
     var minIntervalo = Number(cfg_('intervalo_min_batidas_min', 2));
     if (bat.length && (agora - bat[bat.length - 1].data) < minIntervalo * 60000) {
-      throw new Error((totem ? c.nome.split(' ')[0] + ' já bateu' : 'Você já bateu') + ' o ponto há menos de ' + minIntervalo + ' minutos.');
+      throw new Error(totem ? c.nome.split(' ')[0] + ', o seu ponto já foi anotado agora há pouco.'
+        : 'Você já bateu o ponto há menos de ' + minIntervalo + ' minutos.');
     }
 
     var prox = proximosTipos_(bat);
@@ -206,10 +207,11 @@ function baterPonto_(c, dados, origem) {
     if (motivo) {
       log_(c.login, 'BATIDA_RECUSADA', motivo + (totem ? ' (totem)' : ''));
       var msg = motivo;
-      if (motivo === 'Rosto não reconhecido') msg = totem ? 'Rosto não reconhecido para ' + c.nome.split(' ')[0] + '. Confira se tocou no seu nome e tente de novo, olhando para a câmera.'
+      if (motivo === 'Rosto não reconhecido') msg = totem ? 'Não reconheci o seu rosto. Veja se tocou na SUA foto e tente de novo.'
         : 'Rosto não reconhecido. Tente de novo com mais luz, olhando para a câmera.';
+      if (motivo === 'Rosto não detectado' && totem) msg = 'Não consegui ver o seu rosto. Tente de novo.';
       if (motivo.indexOf('GPS impreciso') === 0) msg = motivo + '. Vá para um local aberto e tente de novo.';
-      if (motivo.indexOf('Fora do raio') === 0) msg = motivo + (totem ? '. O tablet do totem parece estar fora da loja.' : '. O ponto só pode ser batido na loja.');
+      if (motivo.indexOf('Fora do raio') === 0) msg = totem ? 'O tablet parece estar fora da loja. Chame a gerente.' : motivo + '. O ponto só pode ser batido na loja.';
       throw new Error(msg);
     }
     gravarMiniatura_(c, dados.miniatura);   // a foto da grade do totem fica sempre a da última batida aceita

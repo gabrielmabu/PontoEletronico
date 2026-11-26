@@ -357,6 +357,24 @@
   .tt-b .nm { text-align:center; line-height:1.2; }
   .tt-b.off { opacity:.5; } .tt-b.off .ini { background:var(--mut); }
   .tt-b .av { font-size:12px; font-weight:500; color:var(--mut); }
+  /* Totem: letras grandes em tudo (equipe com quem enxerga pouco ou lê com dificuldade) */
+  body.tela-totem .tt-b { font-size:20px; }
+  body.tela-totem .tt-b .av { font-size:15px; }
+  body.tela-totem .tt-cx { max-width:560px; padding:30px 24px; }
+  body.tela-totem .tt-cx h3 { font-size:28px; line-height:1.25; }
+  body.tela-totem .tt-cx p, body.tela-totem .tt-cx .erro { font-size:22px; line-height:1.35; }
+  body.tela-totem .tt-cx .btn { font-size:22px; padding:18px; border-radius:16px; }
+  body.tela-totem .tt-cx .grande { font-size:26px; padding:22px; text-align:left; }
+  body.tela-totem .tt-cx .comprovante b { font-size:30px; }
+  body.tela-totem .tt-cx .comprovante .hora { font-size:64px; }
+  body.tela-totem .tt-cx .comprovante .lin { font-size:22px; }
+  body.tela-totem .tt-cx input { font-size:22px; padding:14px; }
+  body.tela-totem #camTit { font-size:26px; font-weight:700; }
+  body.tela-totem .cam-topo button { font-size:30px; width:60px; height:60px; }
+  body.tela-totem #camAviso { font-size:28px; font-weight:700; line-height:1.25; }
+  body.tela-totem #camStatus { font-size:20px; }
+  body.tela-totem .cam-ind { font-size:17px; }
+  body.tela-totem #ttAviso { font-size:17px; }
   /* Tablet em retrato (ex.: 10" 800×1280): 3 colunas, botões e fotos grandes para tocar de pé */
   @media (min-width:600px) and (orientation:portrait) {
     body.tela-totem .tt-rel { font-size:72px; }
@@ -495,7 +513,7 @@
     <div><div id="ttRelogio" class="tt-rel">--:--</div><div id="ttData" class="mut"></div></div>
     <button class="btn sec peq" style="width:auto;margin:0" onclick="totemTelaCheia()">⛶ Tela cheia</button>
   </div>
-  <h2 class="tt-tit">Toque no seu nome para bater o ponto</h2>
+  <h2 class="tt-tit">👇 Toque na sua foto</h2>
   <div id="ttMsg" class="msg"></div>
   <div id="ttGrade" class="tt-grade"><p class="mut">Carregando a equipe...</p></div>
   <p id="ttAviso" class="mut" style="text-align:center;font-size:13px"></p>
@@ -1057,6 +1075,7 @@ function obterRosto(titulo, opts) {
   return new Promise(function (ok, erro) {
     var modal = el('camModal'), video = el('camVideo');
     var stream = null, timer = null, terminou = false, inicio = Date.now(), track = null, expAjustada = false;
+    var ultimaFala = '', horaFala = Date.now();   // espera a 1ª fala ("olhe para a câmera") terminar
     // Fases: vida → 'centro' → 'virar' → 'voltar' → 'coleta'; sem vida → 'coleta'
     var fase = opts.vida ? 'centro' : 'coleta', amostras = [], escuroSeguidos = 0;
     var passos = opts.vida ? 3 : 0, passoAtual = 0;
@@ -1164,8 +1183,9 @@ function obterRosto(titulo, opts) {
           ind('iLuz', luzOk ? 'ok' : 'ruim');
 
           var posOk = false;
-          if (lw < 0.26) aviso = luzOk ? 'Aproxime o rosto' : aviso;
-          else if (lw > 0.72) aviso = luzOk ? 'Afaste um pouco o celular' : aviso;
+          var noTotem = document.body.classList.contains('tela-totem');
+          if (lw < 0.26) aviso = luzOk ? (noTotem ? 'Chegue mais perto' : 'Aproxime o rosto') : aviso;
+          else if (lw > 0.72) aviso = luzOk ? (noTotem ? 'Fique um pouco mais longe' : 'Afaste um pouco o celular') : aviso;
           else if (Math.abs(cx - 0.5) > 0.14 || Math.abs(cy - 0.47) > 0.15) aviso = luzOk ? 'Centralize o rosto na moldura' : aviso;
           else posOk = true;
           ind('iPos', posOk ? 'ok' : 'ruim');
@@ -1207,6 +1227,10 @@ function obterRosto(titulo, opts) {
         }
         if (!alinhado && fase === 'coleta' && amostras.length) amostras = [];
         el('camAviso').innerHTML = aviso;
+        if (document.body.classList.contains('tela-totem')) {   // no totem, o tablet também fala a instrução (sem repetir a toda hora)
+          var dito = aviso.replace(/<[^>]+>/g, '').replace(/→/g, '').trim();
+          if (dito !== ultimaFala && Date.now() - horaFala > 3500 && !/^Perfeito|^Validando/.test(dito)) { ultimaFala = dito; horaFala = Date.now(); falar(dito); }
+        }
         modal.classList.toggle('alinhado', alinhado);
         if (Date.now() - inicio > 30000 && el('camNativa').classList.contains('hide')) {
           mostrarNativa('Está difícil? Procure um lugar com mais luz ou use a câmera do celular.');
@@ -3372,7 +3396,7 @@ function totemGrade(eq) {
   el('ttGrade').innerHTML = TT.equipe.length ? TT.equipe.map(function (p, i) {
     var bola = /^data:image\/jpeg;base64,/.test(p.foto || '') ? '<img class="ini" src="' + p.foto + '" alt="">' : '<span class="ini">' + esc(iniciais(p.nome)) + '</span>';
     return '<button class="tt-b' + (p.aviso ? ' off' : '') + '" onclick="totemTocar(' + i + ')">' + bola +
-      '<span class="nm">' + esc(p.nome) + '</span>' + (p.aviso ? '<span class="av">falta cadastrar o rosto</span>' : '') + '</button>';
+      '<span class="nm">' + esc(p.nome) + '</span>' + (p.aviso ? '<span class="av">sem foto ainda</span>' : '') + '</button>';
   }).join('') : '<p class="mut">Nenhuma pessoa ativa na equipe. Cadastre no admin › Colaboradores.</p>';
 }
 
@@ -3382,25 +3406,47 @@ function totemOver(html, segundos) {
   if (segundos) TT.voltar = setTimeout(totemFecharOver, segundos * 1000);
 }
 function totemFecharOver() { clearTimeout(TT.voltar); el('ttOver').classList.add('hide'); el('ttCx').innerHTML = ''; }
-function totemErro(t) {
-  totemOver('<div style="font-size:42px">⚠️</div><p class="erro">' + esc(t) + '</p><button class="btn" onclick="totemFecharOver()">Voltar</button>', 8);
+/** Frases do totem: curtas, em primeira pessoa e com ícone, para quem lê com dificuldade. */
+var TT_ROTULO = { ENTRADA: '☀️ Cheguei', SAIDA_INTERVALO: '🍽️ Vou almoçar', VOLTA_INTERVALO: '↩️ Voltei do almoço', SAIDA: '🏠 Vou para casa' };
+var TT_FALA = { ENTRADA: 'chegada', SAIDA_INTERVALO: 'saída para o almoço', VOLTA_INTERVALO: 'volta do almoço', SAIDA: 'saída para casa' };
+
+/** O tablet fala a frase em voz alta (português), se o aparelho tiver voz. */
+function falar(t) {
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(t); u.lang = 'pt-BR'; u.rate = 0.95;
+    var v = speechSynthesis.getVoices().filter(function (x) { return /^pt[-_]BR/i.test(x.lang); })[0];
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+function totemErro(t, fala) {
+  totemOver('<div style="font-size:56px">😕</div><p class="erro">' + esc(t) + '</p><button class="btn" onclick="totemFecharOver()">OK</button>', 10);
+  falar(fala || t);
 }
 
 function totemTocar(i) {
   var p = TT.equipe[i]; if (!p) return;
   msg('ttMsg');
-  if (p.aviso) return totemErro(p.nome.split(' ')[0] + ': ' + p.aviso);
-  carregando('Um instante...');
+  var nome0 = p.nome.split(' ')[0];
+  if (p.aviso) return totemErro(nome0 + ', você ainda não tirou a sua foto no celular. Peça ajuda à gerente.');
+  carregando('Um momento...');
   ttApi('apiTotemEstado', TT.chave, p.id).then(function (st) {
     carregando();
     var nome = st.nome.split(' ')[0];
-    if (!st.proximos.length) return totemOver('<div style="font-size:42px">🌙</div><h3>' + esc(nome) + ', todas as batidas de hoje já foram feitas.</h3><p class="mut">Bom descanso!</p>' +
-      '<button class="btn" onclick="totemFecharOver()">Voltar</button>', 6);
+    if (!st.proximos.length) {
+      totemOver('<div style="font-size:56px">🌙</div><h3>' + esc(nome) + ', você já marcou tudo hoje.</h3><p>Até amanhã!</p>' +
+        '<button class="btn" onclick="totemFecharOver()">OK</button>', 6);
+      return falar(nome + ', você já marcou tudo hoje. Até amanhã!');
+    }
     if (st.proximos.length === 1) return totemCapturar(p, st.proximos[0]);
     TT.opcoes = st.proximos;
-    totemOver('<h3>Oi, ' + esc(nome) + '! O que você vai registrar?</h3>' + st.proximos.map(function (o, k) {
-      return '<button class="btn grande' + (o.tipo === st.sugerido ? '' : ' sec') + '" onclick="totemFecharOver();totemCapturar(TT.equipe[' + i + '],TT.opcoes[' + k + '])">' + esc(o.nome) + '</button>';
-    }).join('') + '<button class="btn sec" onclick="totemFecharOver()">Cancelar</button>', 30);
+    totemOver('<h3>Oi, ' + esc(nome) + '!</h3><p>Toque numa opção:</p>' + st.proximos.map(function (o, k) {
+      return '<button class="btn grande' + (o.tipo === st.sugerido ? '' : ' sec') + '" onclick="totemFecharOver();totemCapturar(TT.equipe[' + i + '],TT.opcoes[' + k + '])">' + esc(TT_ROTULO[o.tipo] || o.nome) + '</button>';
+    }).join('') + '<button class="btn sec" onclick="totemFecharOver()">✕ Voltar</button>', 30);
+    falar('Oi, ' + nome + '! Você vai almoçar, ou vai para casa?');
   }).catch(function (e) { carregando(); if (!e.cancelado) totemErro(e.message); });
 }
 
@@ -3416,10 +3462,11 @@ function gpsTotem() {
 }
 
 function totemCapturar(p, op) {
-  var gps = gpsTotem(), foto;
-  obterRosto(p.nome.split(' ')[0] + ' · ' + op.nome, { pose: 'frente', vida: provaVidaAtiva(), amostras: 2 }).then(function (rosto) {
+  var gps = gpsTotem(), foto, nome0 = p.nome.split(' ')[0];
+  falar(nome0 + ', olhe para a câmera.');
+  obterRosto(nome0 + ' · ' + (TT_ROTULO[op.tipo] || op.nome), { pose: 'frente', vida: provaVidaAtiva(), amostras: 2 }).then(function (rosto) {
     foto = rosto.canvas;
-    carregando('Registrando...');
+    carregando('Anotando...');
     return Promise.all([rosto.descritor, gps]);
   }).then(function (r) {
     var pos = r[1] || {};
@@ -3433,10 +3480,12 @@ function totemCapturar(p, op) {
     vibrar([30, 60, 30]);
     totemOver('<div class="comprovante" style="box-shadow:none;margin:0">' +
       '<svg class="ck" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28"/><path d="M17 29l7 7 15-15"/></svg>' +
-      '<b>Ponto registrado</b><div class="hora">' + esc(hora) + '</div>' +
-      '<div class="lin">' + esc(cp.tipo) + ' · ' + esc(cp.nome) + '</div>' +
-      '<div class="lin">' + esc(dh[0] || '') + (cp.loja ? ' · ' + esc(cp.loja) : '') + '</div></div>' +
-      '<button class="btn" onclick="totemFecharOver()">OK</button>', 5);
+      '<b>Pronto, ' + esc(nome0) + '!</b><div class="hora">' + esc(hora) + '</div>' +
+      '<div class="lin">' + esc(TT_ROTULO[op.tipo] || cp.tipo) + '</div></div>' +
+      '<button class="btn" onclick="totemFecharOver()">OK</button>', 6);
+    var hm = hora.split(':'), h = Number(hm[0]), mi = Number(hm[1]);
+    var horaDita = isNaN(h) ? '' : h + (h === 1 ? ' hora' : ' horas') + (mi ? ' e ' + mi + (mi === 1 ? ' minuto' : ' minutos') : '');
+    falar('Pronto, ' + nome0 + '! Ponto anotado. ' + (TT_FALA[op.tipo] && horaDita ? 'Sua ' + TT_FALA[op.tipo] + ', às ' + horaDita + '.' : ''));
   }).catch(function (e) { carregando(); if (!e.cancelado) totemErro(e.message); });
 }
 

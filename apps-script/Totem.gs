@@ -30,8 +30,7 @@ function totem_(chave) {
 function prontoParaTotem_(c) {
   var temRosto = false;
   try { temRosto = JSON.parse(c.descritores_faciais || '[]').length > 0; } catch (e) {}
-  if (!c.consentimento_lgpd_em) return 'Aceite o termo e cadastre o rosto no seu celular primeiro.';
-  if (!temRosto) return 'Cadastre o rosto no seu celular primeiro.';
+  if (!c.consentimento_lgpd_em || !temRosto) return 'Você ainda não tirou a sua foto no celular. Peça ajuda à gerente.';
   return '';
 }
 
@@ -62,7 +61,7 @@ function apiTotemLista(chave) {
 function colabDoTotem_(chave, id) {
   totem_(chave);
   var c = colaboradorPorId_(id);
-  if (!c || c.ativo !== 'SIM' || c.login === 'admin') throw new Error('Pessoa não encontrada. Atualize a tela.');
+  if (!c || c.ativo !== 'SIM' || c.login === 'admin') throw new Error('Não achei o seu nome. Chame a gerente.');
   var av = prontoParaTotem_(c);
   if (av) throw new Error(av);
   return c;
