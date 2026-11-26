@@ -66,3 +66,40 @@ function apiCaptarContato(d) {
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
+
+/**
+ * Contador de visitas da página /instalar, por dia e origem (aba "Visitas" da planilha de captação).
+ * Só números: não guarda IP, aparelho nem nada de quem visitou. tipo = 'visita' (abriu a página) ou 'criar' (tocou em "Criar meu app").
+ */
+var VISITAS_CAB = ['data', 'origem', 'visitas', 'cliques_criar'];
+function apiVisita(origem, tipo) {
+  origem = String(origem || 'link').toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 40) || 'link';
+  var col = tipo === 'criar' ? 4 : 3;
+  var dia = Utilities.formatDate(new Date(), 'America/Recife', 'yyyy-MM-dd');
+  var cache = CacheService.getScriptCache(), kt = 'vis_taxa_' + dia, n = Number(cache.get(kt) || 0);
+  if (n >= 3000) return { ok: true };            // teto diário contra robô
+  cache.put(kt, String(n + 1), 21600);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: true };
+  try {
+    var ss = contatosSS_(), a = ss.getSheetByName('Visitas');
+    if (!a) {
+      a = ss.insertSheet('Visitas');
+      a.getRange(1, 1, 1, VISITAS_CAB.length).setValues([VISITAS_CAB]).setFontWeight('bold');
+      a.setFrozenRows(1);
+      a.getRange('A:A').setNumberFormat('@');
+    }
+    var ult = a.getLastRow(), ini = Math.max(2, ult - 60);
+    if (ult >= 2) {
+      var v = a.getRange(ini, 1, ult - ini + 1, 2).getValues();
+      for (var i = v.length - 1; i >= 0; i--) {
+        if (String(v[i][0]) === dia && String(v[i][1]) === origem) {
+          var c = a.getRange(ini + i, col); c.setValue((Number(c.getValue()) || 0) + 1);
+          return { ok: true };
+        }
+      }
+    }
+    a.appendRow([dia, origem, col === 3 ? 1 : 0, col === 4 ? 1 : 0]);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
