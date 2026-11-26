@@ -357,6 +357,14 @@
   .tt-b .nm { text-align:center; line-height:1.2; }
   .tt-b.off { opacity:.5; } .tt-b.off .ini { background:var(--mut); }
   .tt-b .av { font-size:12px; font-weight:500; color:var(--mut); }
+  /* Tablet em retrato (ex.: 10" 800×1280): 3 colunas, botões e fotos grandes para tocar de pé */
+  @media (min-width:600px) and (orientation:portrait) {
+    body.tela-totem .tt-rel { font-size:72px; }
+    body.tela-totem .tt-tit { font-size:30px; margin:28px 0 24px; }
+    body.tela-totem .tt-grade { grid-template-columns:repeat(3, 1fr); gap:20px; }
+    body.tela-totem .tt-b { min-height:230px; font-size:22px; border-radius:22px; gap:14px; }
+    body.tela-totem .tt-b .ini, body.tela-totem .tt-b img.ini { width:130px; height:130px; font-size:40px; border-width:4px; }
+  }
   .tt-sair { display:block; margin:34px auto 12px; background:none; border:0; color:var(--mut); text-decoration:underline; font:inherit; font-size:14px; cursor:pointer; }
   .tt-over { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:18; padding:16px; }
   .tt-cx { background:#fff; border-radius:18px; padding:26px 22px; max-width:460px; width:100%; text-align:center; }
