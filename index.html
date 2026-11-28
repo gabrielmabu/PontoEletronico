@@ -336,7 +336,7 @@
   .fer-form .btn { margin:0; white-space:nowrap; }
   @media (max-width:600px) {
     .fer-form { grid-template-columns:1fr 1fr; } .fer-form > :first-child { grid-column:1 / -1; } .fer-form .btn { width:100%; padding-left:8px; padding-right:8px; }
-    .esc-lin { flex-wrap:wrap; } .esc-lin > * { flex:1 1 45%; }
+    .esc-lin { flex-wrap:wrap; } .esc-lin > * { flex:1 1 45%; } .esc-lin > :nth-child(2), .esc-lin > :nth-child(3) { flex-basis:100%; }
     table.esc td:first-child, table.esc th:first-child { position:sticky; left:0; background:#fff; z-index:1; min-width:96px; max-width:110px; white-space:normal; box-shadow:2px 0 0 var(--bd); }
     table.esc tr.ruim td:first-child { background:#FFF8F7; }
     table.esc .ftag { display:block; width:max-content; margin:2px 0 0; }
@@ -765,9 +765,12 @@
       <label>Mínimo de cada função na loja, por dia aberto</label><div id="escFuncMin" class="chk"></div>
       <div class="linha esc-lin"><div><label>Limite semanal</label><select id="escLimite"></select></div>
         <div><label>Jornada máxima por dia</label><select id="escJornada">
-          <option value="480">8 h (padrão CLT)</option><option value="504">8h24 · 42 h em 5 dias (acordo de compensação)</option>
-          <option value="528">8h48 · 44 h em 5 dias (acordo de compensação)</option><option value="540">9 h (acordo de compensação)</option>
-          <option value="600">10 h · máximo (acordo de compensação)</option></select></div>
+          <option value="480">8 h (padrão CLT)</option><option value="504">8h24 · 42 h em 5 dias (acordo)</option>
+          <option value="528">8h48 · 44 h em 5 dias (acordo)</option><option value="540">9 h (acordo)</option>
+          <option value="600">10 h · máximo (acordo)</option></select></div>
+        <div><label>Quem trabalha no dia curto (ex.: sábado)</label><select id="escCompensa">
+          <option value="0">fica com menos horas na semana</option>
+          <option value="1">compensa nos outros dias (até 10 h · acordo)</option></select></div>
         <div><label>Começar na semana de</label><input type="date" id="escInicio" value="2026-12-14"></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
@@ -2396,6 +2399,7 @@ function preencherParametros() {
   if (!gente.length) gente = r.pessoas;
   var cfg = cfgEscala(), funcoes = FUNCOES_PADRAO.slice();
   if (cfg.jornada && el('escJornada').querySelector('option[value="' + cfg.jornada + '"]')) el('escJornada').value = String(cfg.jornada);
+  el('escCompensa').value = cfg.compensa ? '1' : '0';
   gente.forEach(function (c) { if (c.cargo && !/admin|dev/i.test(c.cargo) && funcoes.indexOf(c.cargo) < 0) funcoes.push(c.cargo); });
   ESC.funcoes = funcoes;
   el('escPessoas').innerHTML = gente.map(function (c) {
@@ -2414,6 +2418,7 @@ function salvarCfgEscala() {
   document.querySelectorAll('#escPessoas .escFun').forEach(function (s) { c.funcao[s.dataset.id] = s.value; });
   document.querySelectorAll('#escFuncMin input').forEach(function (x) { c.minFunc[x.dataset.f] = Number(x.value) || 0; });
   if (el('escJornada')) c.jornada = Number(el('escJornada').value) || 480;
+  if (el('escCompensa')) c.compensa = el('escCompensa').value === '1';
   guardar('escCfg', JSON.stringify(c));
 }
 /** Campos de mínimo só para as funções que alguém da escala tem. Padrão: 1 caixa e 1 supervisor(a). */
@@ -2736,7 +2741,8 @@ function lerParametros() {
   });
   var minFunc = {};
   document.querySelectorAll('#escFuncMin input').forEach(function (x) { minFunc[x.dataset.f] = Math.max(0, Number(x.value) || 0); });
-  return { dias: dias, pessoas: pessoas, minFunc: minFunc, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value), jornada: jorn };
+  return { dias: dias, pessoas: pessoas, minFunc: minFunc, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value), jornada: jorn,
+    compensa: !!(el('escCompensa') && el('escCompensa').value === '1') };
 }
 
 /** Célula: 'T' dia inteiro · 'M' meio período (4 h a partir da abertura) · 'F' folga. */
@@ -2761,7 +2767,7 @@ function montarEscala(modo) {
       });
     }) });
   }
-  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite, minFunc: P.minFunc, jornada: P.jornada };
+  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite, minFunc: P.minFunc, jornada: P.jornada, compensa: P.compensa };
   aplicarFerias(ESC.ultima);
   if (modo === 'sugerir') sugerirFolgas();
   recalcularEscala();
@@ -2810,17 +2816,45 @@ function sugerirFolgas() {
   });
 }
 
-function horasCel(x, d) { return !d.aberto || !trabC(x) ? 0 : (x === 'M' ? d.meio : d.trab); }
+/** j (opcional): jornada da célula em minutos, quando a pessoa compensa o dia curto esticando este dia. */
+function horasCel(x, d, j) { return !d.aberto || !trabC(x) ? 0 : (x === 'M' ? d.meio : (j ? j : d.trab)); }
 /** Horário de entrada/saída da célula: T dia inteiro · A abre · C fecha · M meio período. */
-function janelaCel(x, d) {
+function janelaCel(x, d, j) {
   if (!d.aberto || !trabC(x)) return null;
   if (x === 'M') return { a: d.ini, b: d.ini + d.meio };
-  if (x === 'A') return { a: d.ini, b: d.ini + d.turno };
-  if (x === 'C') return { a: d.fim - d.turno, b: d.fim };
+  if (x === 'A') return { a: d.ini, b: d.ini + (j ? j + 60 : d.turno) };
+  if (x === 'C') return { a: d.fim - (j ? j + 60 : d.turno), b: d.fim };
   return { a: d.ini, b: d.fim };
 }
 /** Duração do almoço da célula: 1 h, ou mais (até 1h30) no dia inteiro quando a loja fica aberta um pouco além da jornada. */
-function durAlm(d, x) { return x === 'T' && !d.longo ? Math.max(60, d.almoco) : 60; }
+function durAlm(d, x, j) { return x === 'T' && !d.longo ? Math.max(60, j ? d.dur - j : d.almoco) : 60; }
+/** Quanto a jornada de um dia pode esticar ao compensar: até 10 h (CLT art. 59, §2º), sem sair do horário da loja. */
+function capDia(d) { return d.aberto && d.dur > 360 ? Math.max(d.trab, Math.min(600, d.dur - 60)) : d.trab; }
+/**
+ * Compensação (acordo, CLT art. 59, §2º): quem trabalha 5 dias e fica abaixo do limite semanal (ex.: trabalha no
+ * sábado curto) estica os outros dias por igual, até 10 h e dentro do horário da loja. Semana com férias ou
+ * meio período não é compensada.
+ */
+function compensar(e, s) {
+  s.jor = e.pessoas.map(function () { return e.dias.map(function () { return null; }); });
+  if (!e.compensa) return;
+  var maxDias = (faseAlvo() || {}).max_dias_semana || 5;
+  e.pessoas.forEach(function (p, pi) {
+    var g = s.grade[pi];
+    if (g.some(function (x) { return x === 'V' || x === 'M'; })) return;
+    var trab = g.filter(function (x, i) { return e.dias[i].aberto && trabC(x); }).length;
+    if (trab !== maxDias) return;
+    var falta = e.limite - g.reduce(function (a, x, i) { return a + horasCel(x, e.dias[i]); }, 0);
+    var j = e.dias.map(function (d) { return d.trab; });
+    var podem = g.map(function (x, i) { return i; }).filter(function (i) { return trabC(g[i]) && e.dias[i].aberto && capDia(e.dias[i]) > e.dias[i].trab; });
+    while (falta > 0 && podem.length) {
+      var parte = Math.ceil(falta / podem.length);
+      podem.forEach(function (i) { var add = Math.min(parte, capDia(e.dias[i]) - j[i], falta); j[i] += add; falta -= add; });
+      podem = podem.filter(function (i) { return j[i] < capDia(e.dias[i]); });
+    }
+    g.forEach(function (x, i) { if (j[i] !== e.dias[i].trab && trabC(x)) s.jor[pi][i] = j[i]; });
+  });
+}
 function hCurta(m) { return Math.floor(m / 60) + 'h' + (m % 60 ? ('0' + (m % 60)).slice(-2) : ''); }
 
 function alternarCel(w, pi, i) {
@@ -2842,13 +2876,13 @@ function escalonarAlmoco(e, s, w) {
   s.almoco = e.pessoas.map(function () { return dias.map(function () { return null; }); });
   dias.forEach(function (d, i) {
     if (!d.aberto) return;
-    var dAl = d.longo ? 60 : Math.max(60, d.almoco), pres = {}, presF = {};   // pres[t] = gente na loja no meio-horário t
+    var pres = {}, presF = {};   // pres[t] = gente na loja no meio-horário t
     function marcar(pi, a, b, k) { for (var t = a; t + 15 < b; t += 30) { pres[t] = (pres[t] || 0) + k; var f = e.pessoas[pi].funcao; presF[f] = presF[f] || {}; presF[f][t] = (presF[f][t] || 0) + k; } }
     var precisam = [];
     e.pessoas.forEach(function (p, pi) {
-      var jn = janelaCel(s.grade[pi][i], d); if (!jn) return;
+      var jn = janelaCel(s.grade[pi][i], d, s.jor[pi][i]); if (!jn) return;
       marcar(pi, jn.a, jn.b, 1);
-      if (jn.b - jn.a > 360) precisam.push({ pi: pi, jn: jn });
+      if (jn.b - jn.a > 360) precisam.push({ pi: pi, jn: jn, dAl: durAlm(d, s.grade[pi][i], s.jor[pi][i]) });
     });
     // funções com mínimo almoçam primeiro (escolhem horário sem deixar a função descoberta)
     precisam.sort(function (x, y) {
@@ -2856,7 +2890,7 @@ function escalonarAlmoco(e, s, w) {
       return fy - fx || ((x.pi + w + i) % precisam.length) - ((y.pi + w + i) % precisam.length);
     });
     precisam.forEach(function (q) {
-      var f = e.pessoas[q.pi].funcao, minF = (e.minFunc || {})[f] || 0, melhor = null, nota = -1e9;
+      var f = e.pessoas[q.pi].funcao, minF = (e.minFunc || {})[f] || 0, melhor = null, nota = -1e9, dAl = q.dAl;
       for (var a = q.jn.a + 180; a + dAl <= q.jn.b - 120; a += 60) {
         var pior = 1e9, piorF = 1e9;
         for (var t = a; t + 15 < a + dAl; t += 30) { pior = Math.min(pior, (pres[t] || 0) - 1 - d.min); piorF = Math.min(piorF, ((presF[f] || {})[t] || 0) - 1 - minF); }
@@ -2874,7 +2908,7 @@ function escalonarAlmoco(e, s, w) {
 function recalcularEscala() {
   var e = ESC.ultima; if (!e) return;
   var P = lerParametros();
-  e.dias = P.dias; e.limite = P.limite; e.minFunc = P.minFunc; e.jornada = P.jornada;
+  e.dias = P.dias; e.limite = P.limite; e.minFunc = P.minFunc; e.jornada = P.jornada; e.compensa = P.compensa;
   P.pessoas.forEach(function (p) { e.pessoas.forEach(function (q) { if (q.id === p.id) q.funcao = p.funcao; }); });
   var dias = e.dias, irr = [], marca = {};   // marca['w-pi'] = true (linha) · marca['w-pi-i'] = true (célula) · marca['c-w-i'] (cobertura)
   function add(chave, txt, nivel) { irr.push({ txt: txt, nivel: nivel || 'err' }); marca[chave] = nivel || 'err'; }
@@ -2885,9 +2919,10 @@ function recalcularEscala() {
       if (dias[i].longo && x === 'T') g[i] = pi % 2 ? 'C' : 'A';
       if (!dias[i].longo && (x === 'A' || x === 'C')) g[i] = 'T';
     }); });
+    compensar(e, s);
     escalonarAlmoco(e, s, w);
     s.equipe = dias.map(function (d, i) { return s.grade.reduce(function (a, g) { return a + (d.aberto && trabC(g[i]) ? 1 : 0); }, 0); });
-    s.min = s.grade.map(function (g) { return g.reduce(function (a, x, i) { return a + horasCel(x, dias[i]); }, 0); });
+    s.min = s.grade.map(function (g, pi) { return g.reduce(function (a, x, i) { return a + horasCel(x, dias[i], s.jor[pi][i]); }, 0); });
     var rot = 'Semana ' + (w + 1);
     e.pessoas.forEach(function (p, pi) {
       var g = s.grade[pi], trabalha = g.filter(function (x, i) { return dias[i].aberto && trabC(x); }).length;
@@ -2898,7 +2933,7 @@ function recalcularEscala() {
         if (trab) {
           seguidos[pi]++;
           if (seguidos[pi] === 7) add(w + '-' + pi + '-' + i, rot + ' · ' + p.nome + ' · ' + d.nome + ': 7º dia seguido sem folga (descanso semanal, CLT art. 67).');
-          var jn = janelaCel(x, d), fimDia = jn.b;
+          var jn = janelaCel(x, d, s.jor[pi][i]), fimDia = jn.b;
           if (ultimoFim[pi] !== null && ultimoFim[pi].dia === w * 7 + i - 1 && (24 * 60 - ultimoFim[pi].fim + jn.a) < 660)
             add(w + '-' + pi + '-' + i, rot + ' · ' + p.nome + ' · ' + d.nome + ': menos de 11 h de descanso desde o dia anterior (CLT art. 66).');
           ultimoFim[pi] = { dia: w * 7 + i, fim: fimDia };
@@ -2921,9 +2956,9 @@ function recalcularEscala() {
       for (var t = d.ini; t < d.fim; t += 30) {
         var n = 0, nf = {}, escala = 0, escalaF = {};
         e.pessoas.forEach(function (p, pi) {
-          var jn = janelaCel(s.grade[pi][i], d); if (!jn || t < jn.a || t >= jn.b) return;
+          var jn = janelaCel(s.grade[pi][i], d, s.jor[pi][i]); if (!jn || t < jn.a || t >= jn.b) return;
           escala++; escalaF[p.funcao] = (escalaF[p.funcao] || 0) + 1;
-          var al = s.almoco[pi][i]; if (al !== null && t + 15 >= al && t + 15 < al + durAlm(d, s.grade[pi][i])) return;   // conta pelo meio da meia hora
+          var al = s.almoco[pi][i]; if (al !== null && t + 15 >= al && t + 15 < al + durAlm(d, s.grade[pi][i], s.jor[pi][i])) return;   // conta pelo meio da meia hora
           n++; nf[p.funcao] = (nf[p.funcao] || 0) + 1;
         });
         if (!menor || n < menor.n) menor = { n: n, t: t };
@@ -2987,9 +3022,10 @@ function pintarEscala() {
           if (!d.aberto) return '<td class="fe">fechado</td>';
           if (x === 'V') return '<td class="fer" onclick="alternarCel(' + w + ',' + pi + ',' + i + ')">🏖 Férias</td>';
           var m = marca[w + '-' + pi + '-' + i], cls = (x === 'F' ? 'fo' : (x === 'M' ? 'me' : 'tr')) + (m ? ' ' + (m === 'err' ? 'xerr' : 'xav') : '');
-          var jn = janelaCel(x, d), al = s.almoco[pi][i];
-          var txt = x === 'F' ? 'Folga' : (x === 'A' ? '<span class="turno">abre</span>' : (x === 'C' ? '<span class="turno">fecha</span>' : '')) +
-            hCurta(jn.a) + '–' + hCurta(jn.b) + (al !== null ? '<small class="alm">almoço ' + hCurta(al) + (durAlm(d, x) !== 60 ? '–' + hCurta(al + durAlm(d, x)) : '') + '</small>' : '');
+          var jr = s.jor[pi][i], jn = janelaCel(x, d, jr), al = s.almoco[pi][i], da = durAlm(d, x, jr);
+          var todo = jn && jn.a === d.ini && jn.b === d.fim;   // compensando, abre/fecha pode virar o dia inteiro
+          var txt = x === 'F' ? 'Folga' : (todo ? '' : x === 'A' ? '<span class="turno">abre</span>' : (x === 'C' ? '<span class="turno">fecha</span>' : '')) +
+            hCurta(jn.a) + '–' + hCurta(jn.b) + (al !== null ? '<small class="alm">almoço ' + hCurta(al) + (da !== 60 ? '–' + hCurta(al + da) : '') + '</small>' : '') + (jr ? '<small class="alm">' + hCurta(jr) + ' (compensa)</small>' : '');
           return '<td class="cel ' + cls + '" onclick="alternarCel(' + w + ',' + pi + ',' + i + ')">' + txt + '</td>';
         }).join('') + '<td class="' + (s.min[pi] > e.limite ? 'neg' : '') + '">' + hNum(s.min[pi]) + ' h</td></tr>';
       }).join('') +
@@ -3007,27 +3043,45 @@ function pintarEscala() {
 }
 
 /**
- * Teto de horas por pessoa com estes horários: soma dos 5 dias abertos mais longos (cada dia limitado à jornada máxima).
- * Quando fica abaixo do limite semanal, explica o porquê e o que mudar (a pergunta mais comum: "por que não dá 42 h?").
+ * Teto de horas por pessoa com estes horários, separado em quem folga e quem trabalha no dia mais curto (ex.: sábado).
+ * Quando alguém fica abaixo do limite semanal, explica o porquê e o que mudar (a pergunta mais comum: "por que não dá 42 h?").
  */
 function explicaTeto(e) {
   var abertos = e.dias.filter(function (d) { return d.aberto; });
   if (!abertos.length) return '';
-  var top = abertos.slice().sort(function (a, b) { return b.trab - a.trab; }).slice(0, 5);
-  var teto = top.reduce(function (a, d) { return a + d.trab; }, 0);
-  if (teto >= e.limite - 6) return '';
-  var dicas = [], longo = abertos.filter(function (d) { return d.dur > 360; });
-  var porDia = Math.ceil(e.limite / 5);   // ex.: 42 h → 8h24 por dia
-  if (e.jornada < porDia) dicas.push('O limite de <b>' + hCurta(e.jornada) + ' por dia</b> não deixa passar de ' + hNum(e.jornada * 5) + ' h em 5 dias. Para ' + hNum(e.limite) + ' h, cada dia precisa de <b>' + hCurta(porDia) +
-    '</b> (com 1 h de almoço, a loja aberta ' + hCurta(porDia + 60) + '): isso exige <b>acordo de compensação</b> (CLT art. 59, §2º). Se a loja tiver, escolha a <b>Jornada máxima por dia</b> acima.');
-  var curtos = longo.filter(function (d) { return !d.longo && d.trab < Math.min(e.jornada, porDia); });
-  if (curtos.length) dicas.push('Com 1 h de almoço, a jornada é o horário da loja menos 1 h: ' + (function () { var g = {}, o = []; curtos.forEach(function (d) { var k = hCurta(d.ini) + ' às ' + hCurta(d.fim) + ' = ' + hCurta(d.trab) + ' de trabalho'; if (!g[k]) { g[k] = []; o.push(k); } g[k].push(d.nome); });
-    return o.map(function (k) { return g[k].join(', ') + ' ' + k; }).join('; '); })() +
-    '. Para ' + hCurta(Math.min(e.jornada, porDia)) + ' de trabalho, a loja precisa ficar aberta ' + hCurta(Math.min(e.jornada, porDia) + 60) + ' (ex.: ' + hCurta(curtos[0].ini) + ' às ' + hCurta(curtos[0].ini + Math.min(e.jornada, porDia) + 60) + ').');
-  var meio = abertos.filter(function (d) { return d.dur > 240 && d.dur <= 360; });
-  if (meio.length) dicas.push(meio.map(function (d) { return d.nome; }).join(', ') + ': ' + hCurta(meio[0].dur) + ' de loja aberta = ' + hCurta(meio[0].trab) + ' de trabalho (o intervalo de 15 min não conta como hora trabalhada, CLT art. 71). Quem trabalha nesse dia faz menos horas na semana.');
-  return '<div class="explica"><b>Por que fica abaixo de ' + hNum(e.limite) + ' h?</b> Com estes horários, cada pessoa consegue no máximo <b>' + hNum(teto) + ' h por semana</b> em 5 dias (' +
-    top.map(function (d) { return d.nome + ' ' + hCurta(d.trab); }).join(' + ') + '). ' + hNum(e.limite) + ' h é o <b>máximo</b> da lei, não o mínimo: ficar abaixo não é irregular.' +
+  var maxDias = (faseAlvo() || {}).max_dias_semana || 5, L = e.limite;
+  function cap(d) { return e.compensa ? capDia(d) : d.trab; }
+  function soma(lst, n) { return lst.map(cap).sort(function (a, b) { return b - a; }).slice(0, n).reduce(function (a, b) { return a + b; }, 0); }
+  function melhores(lst, n) { return lst.slice().sort(function (a, b) { return cap(b) - cap(a); }).slice(0, n); }
+  // dia curto: o aberto com menos horas, se for bem menor que os outros e a loja abrir mais dias que os de trabalho
+  var curto = abertos.length > maxDias ? abertos.slice().sort(function (a, b) { return a.trab - b.trab; })[0] : null;
+  if (curto && abertos.filter(function (d) { return d !== curto; }).every(function (d) { return d.trab - curto.trab < 60; })) curto = null;
+  var outros = curto ? abertos.filter(function (d) { return d !== curto; }) : abertos;
+  var tFolga = Math.min(L, soma(outros, maxDias)), tTrab = curto ? Math.min(L, curto.trab + soma(outros, maxDias - 1)) : null;
+  if (tFolga >= L - 6 && (tTrab === null || tTrab >= L - 6)) return '';
+  var lin = [], dicas = [], porDia = Math.ceil(L / maxDias);   // ex.: 42 h em 5 dias → 8h24 por dia
+  function detalhe(lst) { return lst.map(function (d) { return d.nome + ' ' + hCurta(Math.min(cap(d), L)); }).join(' + '); }
+  lin.push((curto ? 'Quem <b>folga no ' + curto.nome + '</b>' : 'Cada pessoa') + ': até <b>' + hNum(tFolga) + ' h</b> (' + detalhe(melhores(outros, maxDias)) + ')');
+  if (curto) lin.push('Quem <b>trabalha no ' + curto.nome + '</b>: até <b>' + hNum(tTrab) + ' h</b> (' + curto.nome + ' ' + hCurta(curto.trab) + ' + ' + detalhe(melhores(outros, maxDias - 1)) + ')');
+  if (tFolga < L - 6) {
+    if (e.jornada < porDia && !e.compensa) dicas.push('O limite de <b>' + hCurta(e.jornada) + ' por dia</b> não deixa passar de ' + hNum(e.jornada * maxDias) + ' h em ' + maxDias + ' dias. Para ' + hNum(L) + ' h, cada dia precisa de <b>' + hCurta(porDia) +
+      '</b> (com 1 h de almoço, a loja aberta ' + hCurta(porDia + 60) + '): isso exige <b>acordo de compensação</b> (CLT art. 59, §2º). Se a loja tiver, escolha a <b>Jornada máxima por dia</b> acima.');
+    var baixos = outros.filter(function (d) { return d.dur > 360 && cap(d) < porDia; });
+    if (baixos.length) dicas.push('Com 1 h de almoço, a jornada é o horário da loja menos 1 h: ' + baixos.map(function (d) { return d.nome; }).join(', ') + ' ' + hCurta(baixos[0].ini) + ' às ' + hCurta(baixos[0].fim) + ' = ' + hCurta(cap(baixos[0])) +
+      '. Para ' + hCurta(porDia) + ' de trabalho, a loja precisa ficar aberta das ' + hCurta(baixos[0].ini) + ' às ' + hCurta(baixos[0].ini + porDia + 60) + '.');
+  }
+  if (curto && tTrab < L - 6) {
+    var precisa = Math.ceil((L - curto.trab) / (maxDias - 1));
+    if (curto.dur > 240 && curto.dur <= 360) dicas.push(curto.nome + ': ' + hCurta(curto.dur) + ' de loja aberta = ' + hCurta(curto.trab) + ' de trabalho (o intervalo de 15 min não conta como hora trabalhada, CLT art. 71).');
+    if (!e.compensa) dicas.push('Para quem trabalha no ' + curto.nome + ' também fechar ' + hNum(L) + ' h, escolha <b>“compensa nos outros dias”</b> acima (acordo de compensação): os outros ' + (maxDias - 1) + ' dias dela passam a ' + hCurta(precisa) + (precisa > 600 ? ', o que passa do máximo de 10 h: aumente o ' + curto.nome : '') + '.');
+    else if (precisa > 600) dicas.push('Mesmo compensando, os outros dias precisariam de ' + hCurta(precisa) + ' (máximo 10 h). Aumente o horário do ' + curto.nome + '.');
+    else {
+      var ex = melhores(outros, 1)[0];
+      dicas.push('Para compensar, os outros dias precisam de ' + hCurta(precisa) + ' de trabalho: a loja aberta ' + hCurta(precisa + 60) + ' (ex.: ' + hCurta(ex.ini) + ' às ' + hCurta(ex.ini + precisa + 60) + ').');
+    }
+  }
+  return '<div class="explica"><b>Por que fica abaixo de ' + hNum(L) + ' h?</b> Máximo por pessoa com estes horários:<ul style="margin:4px 0 6px;padding-left:20px">' + lin.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' +
+    hNum(L) + ' h é o <b>máximo</b> da lei, não o mínimo: ficar abaixo não é irregular.' +
     (dicas.length ? '<ul style="margin:6px 0 0;padding-left:20px">' + dicas.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') + '</div>';
 }
 
@@ -3037,8 +3091,8 @@ function baixarEscalaCsv() {
   e.semanas.forEach(function (s, w) {
     e.pessoas.forEach(function (p, pi) {
       linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome, p.funcao || ''].concat(s.grade[pi].map(function (x, i) {
-        var d = e.dias[i], jn = janelaCel(x, d), al = s.almoco ? s.almoco[pi][i] : null;
-        return !d.aberto ? 'fechado' : (x === 'V' ? 'Férias' : !jn ? 'Folga' : (x === 'A' ? 'Abre ' : (x === 'C' ? 'Fecha ' : '')) + hhmm(jn.a) + '-' + hhmm(jn.b) + (al !== null ? ' (almoço ' + hhmm(al) + '-' + hhmm(al + durAlm(d, x)) + ')' : ''));
+        var d = e.dias[i], jr = s.jor ? s.jor[pi][i] : null, jn = janelaCel(x, d, jr), al = s.almoco ? s.almoco[pi][i] : null;
+        return !d.aberto ? 'fechado' : (x === 'V' ? 'Férias' : !jn ? 'Folga' : (x === 'A' ? 'Abre ' : (x === 'C' ? 'Fecha ' : '')) + hhmm(jn.a) + '-' + hhmm(jn.b) + (al !== null ? ' (almoço ' + hhmm(al) + '-' + hhmm(al + durAlm(d, x, jr)) + ')' : ''));
       })).concat([hNum(s.min[pi])]));
     });
   });
