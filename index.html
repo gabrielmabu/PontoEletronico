@@ -327,7 +327,23 @@
   table.esc small.alm { display:block; font-size:10.5px; color:var(--mut); font-weight:500; }
   table.esc .turno { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--vinho2); font-weight:700; }
   table.esc td.fer { background:#E6F4F1; color:#1D6B5F; font-weight:600; cursor:not-allowed; }
-  .fer-cal { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-top:8px; }
+  .fer-cal { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:4px; margin-top:8px; }
+  .fer-cal .fd { display:block; font-size:10px; line-height:1.2; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; word-break:break-word; }
+  #escDias input { width:76px; padding:6px 8px; } #escDias td, #turTab td { vertical-align:middle; }
+  #turTab input { padding:6px 8px; } #turTab td:nth-child(1) input { min-width:88px; } #turTab td:nth-child(2) input, #turTab td:nth-child(3) input { min-width:66px; } #turTab td:nth-child(4) input { min-width:52px; }
+  #turTab .rm { font-size:18px; text-decoration:none; padding:4px 6px; }
+  .fer-form { display:grid; grid-template-columns:2fr 1.4fr 1fr auto auto; gap:8px 10px; align-items:end; }
+  .fer-form .btn { margin:0; white-space:nowrap; }
+  @media (max-width:600px) {
+    .fer-form { grid-template-columns:1fr 1fr; } .fer-form > :first-child { grid-column:1 / -1; } .fer-form .btn { width:100%; padding-left:8px; padding-right:8px; }
+    .esc-lin { flex-wrap:wrap; } .esc-lin > * { flex:1 1 45%; }
+    table.esc td:first-child, table.esc th:first-child { position:sticky; left:0; background:#fff; z-index:1; min-width:96px; max-width:110px; white-space:normal; box-shadow:2px 0 0 var(--bd); }
+    table.esc tr.ruim td:first-child { background:#FFF8F7; }
+    table.esc .ftag { display:block; width:max-content; margin:2px 0 0; }
+    table.esc td.cel { min-width:62px; }
+    .fer-cal { gap:2px; } .fer-cal .d { min-height:58px; padding:3px; } .fer-cal .d .q { font-size:10px; }
+    #turDem input { width:48px !important; padding:6px; }
+  }
   .fer-cal .cab { font-size:11px; font-weight:700; color:var(--mut); text-align:center; text-transform:uppercase; }
   .fer-cal .d { min-height:74px; border:1px solid var(--bd); border-radius:10px; padding:4px 5px; background:#fff; font-size:11px; }
   .fer-cal .d.vazio { border:0; background:transparent; }
@@ -721,12 +737,12 @@
         <div class="filtro"><button class="btn sec peq" onclick="baixarFeriasCsv()">⤓ Férias (CSV)</button></div></div>
       <p class="mut" style="margin:0 0 6px">Calendário da equipe e regras da CLT. As duas escalas abaixo já descontam quem está de férias.</p>
     <div id="escFerias">
-      <div class="linha" style="align-items:flex-end;flex-wrap:wrap">
+      <div class="fer-form">
         <div><label>Colaborador(a)</label><select id="ferPessoa"></select></div>
         <div><label>Início</label><input type="date" id="ferIni" onchange="ferPrevia()"></div>
         <div><label>Dias</label><select id="ferDias" onchange="ferPrevia()"><option>30</option><option>20</option><option>15</option><option>14</option><option>10</option><option>5</option></select></div>
-        <div><button class="btn sec" style="margin:0" onclick="sugerirDataFerias()">✨ Sugerir data</button></div>
-        <div><button class="btn" style="margin:0" onclick="adicionarFerias()">+ Adicionar férias</button></div>
+        <button class="btn sec" onclick="sugerirDataFerias()">✨ Sugerir data</button>
+        <button class="btn" onclick="adicionarFerias()">+ Adicionar</button>
       </div>
       <p class="mut" id="ferPrev" style="margin:6px 0 0"></p>
       <div id="ferLista"></div>
@@ -747,7 +763,11 @@
       <div class="scroll"><table id="escDias"></table></div>
       <label>Equipe e função de cada pessoa</label><div id="escPessoas" class="esc-pessoas"></div>
       <label>Mínimo de cada função na loja, por dia aberto</label><div id="escFuncMin" class="chk"></div>
-      <div class="linha"><div><label>Limite semanal</label><select id="escLimite"></select></div>
+      <div class="linha esc-lin"><div><label>Limite semanal</label><select id="escLimite"></select></div>
+        <div><label>Jornada máxima por dia</label><select id="escJornada">
+          <option value="480">8 h (padrão CLT)</option><option value="504">8h24 · 42 h em 5 dias (acordo de compensação)</option>
+          <option value="528">8h48 · 44 h em 5 dias (acordo de compensação)</option><option value="540">9 h (acordo de compensação)</option>
+          <option value="600">10 h · máximo (acordo de compensação)</option></select></div>
         <div><label>Começar na semana de</label><input type="date" id="escInicio" value="2026-12-14"></div>
         <div><label>Semanas</label><select id="escSemanas"><option>1</option><option selected>2</option><option>4</option><option>6</option><option>8</option></select></div></div>
     </details>
@@ -2365,7 +2385,7 @@ function preencherParametros() {
       var rel = maxMed ? (d.media || 0) / maxMed : 1, mov = rel < 0.85 ? 'fraco' : (rel > 0.98 ? 'forte' : 'normal');
       var minimo = aberto ? minimoPorMovimento(mov, nEquipe, nAbertos) : 0;
       return '<tr><td><b>' + n + '</b></td><td><input type="checkbox" id="escA' + i + '"' + (aberto ? ' checked' : '') + '></td>' +
-        '<td><input id="escI' + i + '" value="' + (ini !== null ? hhmm(ini) : '08:00') + '"></td><td><input id="escF' + i + '" value="' + (fim !== null ? hhmm(fim) : '17:00') + '"></td>' +
+        '<td><input id="escI' + i + '" value="' + (ini !== null ? hhmm(ini) : '8:00') + '"></td><td><input id="escF' + i + '" value="' + (fim !== null ? hhmm(fim) : '17:00') + '"></td>' +
         '<td><select id="escV' + i + '">' + ['fraco', 'normal', 'forte'].map(function (v) {
           return '<option value="' + v + '"' + (v === mov ? ' selected' : '') + '>' + v.charAt(0).toUpperCase() + v.slice(1) + '</option>';
         }).join('') + '</select></td>' +
@@ -2375,6 +2395,7 @@ function preencherParametros() {
   var gente = (S.admin ? colabsPonto() : []).filter(function (c) { return c.ativo; });
   if (!gente.length) gente = r.pessoas;
   var cfg = cfgEscala(), funcoes = FUNCOES_PADRAO.slice();
+  if (cfg.jornada && el('escJornada').querySelector('option[value="' + cfg.jornada + '"]')) el('escJornada').value = String(cfg.jornada);
   gente.forEach(function (c) { if (c.cargo && !/admin|dev/i.test(c.cargo) && funcoes.indexOf(c.cargo) < 0) funcoes.push(c.cargo); });
   ESC.funcoes = funcoes;
   el('escPessoas').innerHTML = gente.map(function (c) {
@@ -2392,6 +2413,7 @@ function salvarCfgEscala() {
   var c = cfgEscala();
   document.querySelectorAll('#escPessoas .escFun').forEach(function (s) { c.funcao[s.dataset.id] = s.value; });
   document.querySelectorAll('#escFuncMin input').forEach(function (x) { c.minFunc[x.dataset.f] = Number(x.value) || 0; });
+  if (el('escJornada')) c.jornada = Number(el('escJornada').value) || 480;
   guardar('escCfg', JSON.stringify(c));
 }
 /** Campos de mínimo só para as funções que alguém da escala tem. Padrão: 1 caixa e 1 supervisor(a). */
@@ -2507,7 +2529,7 @@ function turPintar() {
   el('turTab').innerHTML = '<tr><th>Turno</th><th>Início</th><th>Fim</th><th>Horas pagas</th><th></th></tr>' + c.turnos.map(function (t, i) {
     return '<tr data-i="' + i + '" data-id="' + esc(t.id) + '"><td><input id="turN' + i + '" value="' + esc(t.nome) + '"></td><td><input id="turI' + i + '" value="' + esc(t.ini) + '" placeholder="06:00"></td>' +
       '<td><input id="turF' + i + '" value="' + esc(t.fim) + '" placeholder="14:00"></td><td><input id="turH' + i + '" inputmode="decimal" value="' + esc(vBR(t.horas)) + '"></td>' +
-      '<td>' + (c.turnos.length > 1 ? '<span class="lk" onclick="turRemover(' + i + ')">remover</span>' : '') + '</td></tr>';
+      '<td>' + (c.turnos.length > 1 ? '<span class="lk rm" title="Remover turno" aria-label="Remover turno" onclick="turRemover(' + i + ')">✕</span>' : '') + '</td></tr>';
   }).join('') + (c.turnos.length < 5 ? '<tr><td colspan="5"><span class="lk" onclick="turAdicionar()">+ adicionar turno</span> <span class="mut">· se o fim for menor que o início, o turno passa da meia-noite</span></td></tr>' : '');
   el('turDesc').value = vBR(c.descansoH); el('turSeg').value = c.maxSeg;
   var fs_ = turFuncoes();
@@ -2669,7 +2691,7 @@ function pintarCalendarioFerias() {
     var fora = l.filter(function (f) { return equipe.indexOf(f.pid) >= 0 && iso >= f.ini && iso <= f.fim; });
     var sobra = equipe.length - fora.length, porDia = sobra * 5 / 6;   // em 5x2, cerca de 5/6 da equipe trabalha num dia de loja aberta
     var cls = !aberto || fer[iso] ? 'fech' : (porDia < minimo ? 'critico' : (porDia < minimo + 1 ? 'baixo' : ''));
-    html += '<div class="d ' + cls + '"><b>' + dia + '</b>' + (aberto && !fer[iso] ? '<span class="q">' + sobra + '</span>' : '') + (fer[iso] ? '<span class="mut"> ' + esc(fer[iso]) + '</span>' : '') +
+    html += '<div class="d ' + cls + '"><b>' + dia + '</b>' + (aberto && !fer[iso] ? '<span class="q">' + sobra + '</span>' : '') + (fer[iso] ? '<span class="mut fd" title="' + esc(fer[iso]) + '">' + esc(fer[iso]) + '</span>' : '') +
       fora.map(function (f) { return '<span class="nm">🏖 ' + esc(f.nome) + '</span>'; }).join('') + '</div>';
   }
   el('ferCal').innerHTML = '<div class="fer-cal">' + html + '</div><p class="mut" style="margin:6px 0 0">Número no canto = pessoas disponíveis (fora as de férias). <span style="color:#B7791F">Amarelo</span>: apertado; <span class="neg">vermelho</span>: com as folgas da 5x2, não dá o mínimo do dia.</p>';
@@ -2696,14 +2718,17 @@ function trabC(x) { return x !== 'F' && x !== 'V'; }
 
 /** Lê o formulário: funcionamento da loja, equipe, limite e semanas. */
 function lerParametros() {
+  var jorn = Number(el('escJornada') && el('escJornada').value) || 480;   // jornada máxima por dia (min), sem contar o almoço
   var dias = DIAS_SEM.map(function (n, i) {
     var a = el('escA' + i).checked, ini = minDe(el('escI' + i).value), fim = minDe(el('escF' + i).value);
     var dur = a && ini !== null && fim !== null && fim > ini ? fim - ini : 0;
-    var almoco = dur > 360 ? 60 : (dur > 240 ? 15 : 0);
-    var meio = Math.min(240, dur);
-    // Loja aberta mais de 9 h (8 h + 1 h de almoço): uma pessoa não cobre o dia → turnos de abertura e de fechamento
-    return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0), dur: dur,
-      longo: dur > 540, trab: Math.max(0, Math.min(dur, 540) - (Math.min(dur, 540) > 360 ? 60 : almoco)), meio: meio, almoco: almoco };
+    var meio = Math.min(240, dur), turno = jorn + 60;
+    // Até 30 min além da jornada + 1 h: o almoço estica (até 1h30, CLT art. 71) e todos fazem o dia inteiro.
+    // Mais que isso: uma pessoa não cobre o dia → turnos de abertura e de fechamento.
+    var estica = dur > turno && dur - jorn <= 90, longo = dur > turno && !estica;
+    var almoco = dur > 360 ? (estica ? dur - jorn : 60) : (dur > 240 ? 15 : 0);
+    return { nome: n, aberto: a && dur > 0, ini: ini, fim: fim, min: Math.max(0, Number(el('escM' + i).value) || 0), dur: dur, turno: turno,
+      longo: longo, trab: Math.max(0, longo ? jorn : dur - almoco), meio: meio, almoco: almoco };
   });
   var pessoas = [].slice.call(document.querySelectorAll('#escPessoas input:checked')).map(function (x) {
     var sel = x.closest('div').querySelector('select');
@@ -2711,7 +2736,7 @@ function lerParametros() {
   });
   var minFunc = {};
   document.querySelectorAll('#escFuncMin input').forEach(function (x) { minFunc[x.dataset.f] = Math.max(0, Number(x.value) || 0); });
-  return { dias: dias, pessoas: pessoas, minFunc: minFunc, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value) };
+  return { dias: dias, pessoas: pessoas, minFunc: minFunc, limite: Number(el('escLimite').value) * 60, nSem: Number(el('escSemanas').value), jornada: jorn };
 }
 
 /** Célula: 'T' dia inteiro · 'M' meio período (4 h a partir da abertura) · 'F' folga. */
@@ -2736,7 +2761,7 @@ function montarEscala(modo) {
       });
     }) });
   }
-  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite, minFunc: P.minFunc };
+  ESC.ultima = { dias: P.dias, pessoas: P.pessoas, semanas: semanas, limite: P.limite, minFunc: P.minFunc, jornada: P.jornada };
   aplicarFerias(ESC.ultima);
   if (modo === 'sugerir') sugerirFolgas();
   recalcularEscala();
@@ -2790,10 +2815,12 @@ function horasCel(x, d) { return !d.aberto || !trabC(x) ? 0 : (x === 'M' ? d.mei
 function janelaCel(x, d) {
   if (!d.aberto || !trabC(x)) return null;
   if (x === 'M') return { a: d.ini, b: d.ini + d.meio };
-  if (x === 'A') return { a: d.ini, b: d.ini + 540 };
-  if (x === 'C') return { a: d.fim - 540, b: d.fim };
+  if (x === 'A') return { a: d.ini, b: d.ini + d.turno };
+  if (x === 'C') return { a: d.fim - d.turno, b: d.fim };
   return { a: d.ini, b: d.fim };
 }
+/** Duração do almoço da célula: 1 h, ou mais (até 1h30) no dia inteiro quando a loja fica aberta um pouco além da jornada. */
+function durAlm(d, x) { return x === 'T' && !d.longo ? Math.max(60, d.almoco) : 60; }
 function hCurta(m) { return Math.floor(m / 60) + 'h' + (m % 60 ? ('0' + (m % 60)).slice(-2) : ''); }
 
 function alternarCel(w, pi, i) {
@@ -2815,8 +2842,8 @@ function escalonarAlmoco(e, s, w) {
   s.almoco = e.pessoas.map(function () { return dias.map(function () { return null; }); });
   dias.forEach(function (d, i) {
     if (!d.aberto) return;
-    var pres = {}, presF = {};   // pres[t] = gente na loja no meio-horário t
-    function marcar(pi, a, b, k) { for (var t = a; t < b; t += 30) { pres[t] = (pres[t] || 0) + k; var f = e.pessoas[pi].funcao; presF[f] = presF[f] || {}; presF[f][t] = (presF[f][t] || 0) + k; } }
+    var dAl = d.longo ? 60 : Math.max(60, d.almoco), pres = {}, presF = {};   // pres[t] = gente na loja no meio-horário t
+    function marcar(pi, a, b, k) { for (var t = a; t + 15 < b; t += 30) { pres[t] = (pres[t] || 0) + k; var f = e.pessoas[pi].funcao; presF[f] = presF[f] || {}; presF[f][t] = (presF[f][t] || 0) + k; } }
     var precisam = [];
     e.pessoas.forEach(function (p, pi) {
       var jn = janelaCel(s.grade[pi][i], d); if (!jn) return;
@@ -2830,15 +2857,15 @@ function escalonarAlmoco(e, s, w) {
     });
     precisam.forEach(function (q) {
       var f = e.pessoas[q.pi].funcao, minF = (e.minFunc || {})[f] || 0, melhor = null, nota = -1e9;
-      for (var a = q.jn.a + 180; a + 60 <= q.jn.b - 120; a += 60) {
+      for (var a = q.jn.a + 180; a + dAl <= q.jn.b - 120; a += 60) {
         var pior = 1e9, piorF = 1e9;
-        for (var t = a; t < a + 60; t += 30) { pior = Math.min(pior, (pres[t] || 0) - 1 - d.min); piorF = Math.min(piorF, ((presF[f] || {})[t] || 0) - 1 - minF); }
+        for (var t = a; t + 15 < a + dAl; t += 30) { pior = Math.min(pior, (pres[t] || 0) - 1 - d.min); piorF = Math.min(piorF, ((presF[f] || {})[t] || 0) - 1 - minF); }
         var n = pior * 10 + (piorF < 0 ? -500 : piorF * 3) - Math.abs(a - (d.ini + d.fim - 60) / 2) / 600;
         if (n > nota) { nota = n; melhor = a; }
       }
-      if (melhor === null) melhor = Math.round((q.jn.a + q.jn.b - 60) / 2 / 30) * 30;
+      if (melhor === null) melhor = Math.round((q.jn.a + q.jn.b - dAl) / 2 / 30) * 30;
       s.almoco[q.pi][i] = melhor;
-      marcar(q.pi, melhor, melhor + 60, -1);
+      marcar(q.pi, melhor, melhor + dAl, -1);
     });
   });
 }
@@ -2847,7 +2874,7 @@ function escalonarAlmoco(e, s, w) {
 function recalcularEscala() {
   var e = ESC.ultima; if (!e) return;
   var P = lerParametros();
-  e.dias = P.dias; e.limite = P.limite; e.minFunc = P.minFunc;
+  e.dias = P.dias; e.limite = P.limite; e.minFunc = P.minFunc; e.jornada = P.jornada;
   P.pessoas.forEach(function (p) { e.pessoas.forEach(function (q) { if (q.id === p.id) q.funcao = p.funcao; }); });
   var dias = e.dias, irr = [], marca = {};   // marca['w-pi'] = true (linha) · marca['w-pi-i'] = true (célula) · marca['c-w-i'] (cobertura)
   function add(chave, txt, nivel) { irr.push({ txt: txt, nivel: nivel || 'err' }); marca[chave] = nivel || 'err'; }
@@ -2896,7 +2923,7 @@ function recalcularEscala() {
         e.pessoas.forEach(function (p, pi) {
           var jn = janelaCel(s.grade[pi][i], d); if (!jn || t < jn.a || t >= jn.b) return;
           escala++; escalaF[p.funcao] = (escalaF[p.funcao] || 0) + 1;
-          var al = s.almoco[pi][i]; if (al !== null && t >= al && t < al + 60) return;
+          var al = s.almoco[pi][i]; if (al !== null && t + 15 >= al && t + 15 < al + durAlm(d, s.grade[pi][i])) return;   // conta pelo meio da meia hora
           n++; nf[p.funcao] = (nf[p.funcao] || 0) + 1;
         });
         if (!menor || n < menor.n) menor = { n: n, t: t };
@@ -2931,7 +2958,7 @@ function pintarEscala() {
   var dif = r.pessoas.length && totalAntes ? Math.round((totalDepois - totalAntes) / totalAntes * 100) : null;
   var ok = !erros;
   var html = '<h2 style="margin-top:18px">Montar a escala</h2>' +
-    '<p class="mut">Toque nos dias de cada pessoa: <b>dia inteiro</b> → <b>folga</b> → <b>meio período (4 h)</b>' + (dias.some(function (d) { return d.longo; }) ? ' (nos dias com loja aberta mais de 9 h: <b>abre</b> → <b>fecha</b> → folga → meio período)' : '') +
+    '<p class="mut">Toque nos dias de cada pessoa: <b>dia inteiro</b> → <b>folga</b> → <b>meio período (4 h)</b>' + (dias.some(function (d) { return d.longo; }) ? ' (nos dias com loja aberta mais de ' + hCurta(e.jornada + 60) + ': <b>abre</b> → <b>fecha</b> → folga → meio período)' : '') +
       '. O almoço é escalonado sozinho para a loja não ficar abaixo do mínimo, e a cobertura é conferida de meia em meia hora, do abrir ao fechar.</p>' +
     '<div class="filtro" style="margin:8px 0 4px">' +
       '<button class="btn sec peq" onclick="montarEscala(\'atual\')">↺ Voltar à rotina atual</button>' +
@@ -2948,6 +2975,7 @@ function pintarEscala() {
         return '<li class="' + (x.nivel === 'err' ? 'neg' : '') + '" style="font-weight:' + (x.nivel === 'err' ? 600 : 400) + '">' + (x.nivel === 'err' ? '⛔ ' : '⚠️ ') + esc(x.txt) + '</li>';
       }).join('') + '</ul>'
     : '<b style="color:var(--ok)">✓ Nenhuma irregularidade.</b> Todos com 2 folgas, dentro de ' + hNum(e.limite) + ' h e com a loja coberta.') + '</div>';
+  html += explicaTeto(e);
   e.semanas.forEach(function (s, w) {
     var fimS = new Date(s.inicio.getTime() + 6 * 864e5), fmt = function (d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); };
     html += '<h3 style="margin:16px 0 6px;color:var(--vinho)">Semana ' + (w + 1) + ' · ' + fmt(s.inicio) + ' a ' + fmt(fimS) + '</h3><div class="scroll"><table class="esc"><tr><th>Colaborador(a)</th>' +
@@ -2961,7 +2989,7 @@ function pintarEscala() {
           var m = marca[w + '-' + pi + '-' + i], cls = (x === 'F' ? 'fo' : (x === 'M' ? 'me' : 'tr')) + (m ? ' ' + (m === 'err' ? 'xerr' : 'xav') : '');
           var jn = janelaCel(x, d), al = s.almoco[pi][i];
           var txt = x === 'F' ? 'Folga' : (x === 'A' ? '<span class="turno">abre</span>' : (x === 'C' ? '<span class="turno">fecha</span>' : '')) +
-            hCurta(jn.a) + '–' + hCurta(jn.b) + (al !== null ? '<small class="alm">almoço ' + hCurta(al) + '</small>' : '');
+            hCurta(jn.a) + '–' + hCurta(jn.b) + (al !== null ? '<small class="alm">almoço ' + hCurta(al) + (durAlm(d, x) !== 60 ? '–' + hCurta(al + durAlm(d, x)) : '') + '</small>' : '');
           return '<td class="cel ' + cls + '" onclick="alternarCel(' + w + ',' + pi + ',' + i + ')">' + txt + '</td>';
         }).join('') + '<td class="' + (s.min[pi] > e.limite ? 'neg' : '') + '">' + hNum(s.min[pi]) + ' h</td></tr>';
       }).join('') +
@@ -2978,6 +3006,31 @@ function pintarEscala() {
   el('escRes').innerHTML = html;
 }
 
+/**
+ * Teto de horas por pessoa com estes horários: soma dos 5 dias abertos mais longos (cada dia limitado à jornada máxima).
+ * Quando fica abaixo do limite semanal, explica o porquê e o que mudar (a pergunta mais comum: "por que não dá 42 h?").
+ */
+function explicaTeto(e) {
+  var abertos = e.dias.filter(function (d) { return d.aberto; });
+  if (!abertos.length) return '';
+  var top = abertos.slice().sort(function (a, b) { return b.trab - a.trab; }).slice(0, 5);
+  var teto = top.reduce(function (a, d) { return a + d.trab; }, 0);
+  if (teto >= e.limite - 6) return '';
+  var dicas = [], longo = abertos.filter(function (d) { return d.dur > 360; });
+  var porDia = Math.ceil(e.limite / 5);   // ex.: 42 h → 8h24 por dia
+  if (e.jornada < porDia) dicas.push('O limite de <b>' + hCurta(e.jornada) + ' por dia</b> não deixa passar de ' + hNum(e.jornada * 5) + ' h em 5 dias. Para ' + hNum(e.limite) + ' h, cada dia precisa de <b>' + hCurta(porDia) +
+    '</b> (com 1 h de almoço, a loja aberta ' + hCurta(porDia + 60) + '): isso exige <b>acordo de compensação</b> (CLT art. 59, §2º). Se a loja tiver, escolha a <b>Jornada máxima por dia</b> acima.');
+  var curtos = longo.filter(function (d) { return !d.longo && d.trab < Math.min(e.jornada, porDia); });
+  if (curtos.length) dicas.push('Com 1 h de almoço, a jornada é o horário da loja menos 1 h: ' + (function () { var g = {}, o = []; curtos.forEach(function (d) { var k = hCurta(d.ini) + ' às ' + hCurta(d.fim) + ' = ' + hCurta(d.trab) + ' de trabalho'; if (!g[k]) { g[k] = []; o.push(k); } g[k].push(d.nome); });
+    return o.map(function (k) { return g[k].join(', ') + ' ' + k; }).join('; '); })() +
+    '. Para ' + hCurta(Math.min(e.jornada, porDia)) + ' de trabalho, a loja precisa ficar aberta ' + hCurta(Math.min(e.jornada, porDia) + 60) + ' (ex.: ' + hCurta(curtos[0].ini) + ' às ' + hCurta(curtos[0].ini + Math.min(e.jornada, porDia) + 60) + ').');
+  var meio = abertos.filter(function (d) { return d.dur > 240 && d.dur <= 360; });
+  if (meio.length) dicas.push(meio.map(function (d) { return d.nome; }).join(', ') + ': ' + hCurta(meio[0].dur) + ' de loja aberta = ' + hCurta(meio[0].trab) + ' de trabalho (o intervalo de 15 min não conta como hora trabalhada, CLT art. 71). Quem trabalha nesse dia faz menos horas na semana.');
+  return '<div class="explica"><b>Por que fica abaixo de ' + hNum(e.limite) + ' h?</b> Com estes horários, cada pessoa consegue no máximo <b>' + hNum(teto) + ' h por semana</b> em 5 dias (' +
+    top.map(function (d) { return d.nome + ' ' + hCurta(d.trab); }).join(' + ') + '). ' + hNum(e.limite) + ' h é o <b>máximo</b> da lei, não o mínimo: ficar abaixo não é irregular.' +
+    (dicas.length ? '<ul style="margin:6px 0 0;padding-left:20px">' + dicas.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') + '</div>';
+}
+
 function baixarEscalaCsv() {
   var e = ESC.ultima; if (!e) return;
   var linhas = [['Semana', 'Colaborador(a)', 'Função'].concat(DIAS_SEM).concat(['Horas'])];
@@ -2985,7 +3038,7 @@ function baixarEscalaCsv() {
     e.pessoas.forEach(function (p, pi) {
       linhas.push(['Semana ' + (w + 1) + ' (' + s.inicio.toLocaleDateString('pt-BR') + ')', p.nome, p.funcao || ''].concat(s.grade[pi].map(function (x, i) {
         var d = e.dias[i], jn = janelaCel(x, d), al = s.almoco ? s.almoco[pi][i] : null;
-        return !d.aberto ? 'fechado' : (x === 'V' ? 'Férias' : !jn ? 'Folga' : (x === 'A' ? 'Abre ' : (x === 'C' ? 'Fecha ' : '')) + hhmm(jn.a) + '-' + hhmm(jn.b) + (al !== null ? ' (almoço ' + hhmm(al) + ')' : ''));
+        return !d.aberto ? 'fechado' : (x === 'V' ? 'Férias' : !jn ? 'Folga' : (x === 'A' ? 'Abre ' : (x === 'C' ? 'Fecha ' : '')) + hhmm(jn.a) + '-' + hhmm(jn.b) + (al !== null ? ' (almoço ' + hhmm(al) + '-' + hhmm(al + durAlm(d, x)) + ')' : ''));
       })).concat([hNum(s.min[pi])]));
     });
   });
